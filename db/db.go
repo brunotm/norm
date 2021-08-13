@@ -13,13 +13,9 @@ import (
 	"github.com/brunotm/statement/scan"
 )
 
-type Logger interface {
-	Log(message, id string, err error, d time.Duration, query string)
-}
+type Logger func(message, id string, err error, d time.Duration, query string)
 
-type dummyLogger struct{}
-
-func (dummyLogger) Log(message, id string, err error, d time.Duration, query string) {}
+func noopLogger(message, id string, err error, d time.Duration, query string) {}
 
 type Config struct {
 	Log      Logger
@@ -40,7 +36,7 @@ func New(db *sql.DB, config Config) (d *DB, err error) {
 	d = &DB{}
 	d.db = db
 
-	d.log = dummyLogger{}
+	d.log = noopLogger
 	if config.Log != nil {
 		d.log = config.Log
 	}
@@ -101,7 +97,7 @@ func (t *Tx) Exec(stmt statement.Statement) (r sql.Result, err error) {
 	r, err = t.tx.ExecContext(t.ctx, query)
 	t.mu.Unlock()
 
-	t.log.Log("", "db.exec", err, time.Since(start), query)
+	t.log("", "db.exec", err, time.Since(start), query)
 	return r, err
 }
 
@@ -125,7 +121,7 @@ func (t *Tx) Query(dst interface{}, stmt statement.Statement) (err error) {
 
 	if r, ok := t.cache[key]; ok {
 		reflect.ValueOf(dst).Elem().Set(r)
-		t.log.Log(strconv.FormatUint(key, 32), "db.query.cached", nil, time.Since(start), query)
+		t.log(strconv.FormatUint(key, 32), "db.query.cached", nil, time.Since(start), query)
 		return nil
 	}
 
@@ -139,12 +135,12 @@ func (t *Tx) Query(dst interface{}, stmt statement.Statement) (err error) {
 	}
 
 	if err == nil {
-		t.log.Log(strconv.FormatUint(key, 32), "db.query.cache.add", nil, time.Since(start), query)
+		t.log(strconv.FormatUint(key, 32), "db.query.cache.add", nil, time.Since(start), query)
 		t.cache[key] = reflect.ValueOf(dst).Elem()
 		return nil
 	}
 
-	defer t.log.Log(strconv.FormatUint(key, 32), "db.query", err, time.Since(start), query)
+	defer t.log(strconv.FormatUint(key, 32), "db.query", err, time.Since(start), query)
 	return err
 }
 
