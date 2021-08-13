@@ -16,6 +16,7 @@ var (
 	structMapCache = sync.Map{} // reflect.Type / map[string][]int
 )
 
+// IsSlice return true if the given interface{} holds a slice type
 func IsSlice(v interface{}) bool {
 	kind := reflect.TypeOf(v).Kind()
 	if reflect.TypeOf(v).Kind() == reflect.Ptr {
@@ -24,6 +25,8 @@ func IsSlice(v interface{}) bool {
 
 	return kind == reflect.Slice
 }
+
+// Scan code adapted from https://github.com/mailru/dbr/blob/master/load.go
 
 // Load loads any value from sql.Rows
 func Load(rows *sql.Rows, value interface{}) (int, error) {

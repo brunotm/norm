@@ -5,26 +5,48 @@ import (
 	"database/sql"
 	"hash/maphash"
 	"reflect"
+	"strconv"
 	"sync"
+	"time"
 
 	"github.com/brunotm/statement"
 	"github.com/brunotm/statement/scan"
 )
 
+type Logger interface {
+	Log(message, id string, err error, d time.Duration, query string)
+}
+
+type dummyLogger struct{}
+
+func (dummyLogger) Log(message, id string, err error, d time.Duration, query string) {}
+
+type Config struct {
+	Log      Logger
+	ReadOpt  sql.IsolationLevel
+	WriteOpt sql.IsolationLevel
+}
+
 // DB is a wrapped *sql.DB
 type DB struct {
 	db       *sql.DB
+	log      Logger
 	readOpt  *sql.TxOptions
 	writeOpt *sql.TxOptions
 }
 
 // New creates a new database from an existing *sql.DB.
-func New(db *sql.DB, read, write sql.IsolationLevel) (d *DB, err error) {
+func New(db *sql.DB, config Config) (d *DB, err error) {
 	d = &DB{}
 	d.db = db
 
-	d.readOpt = &sql.TxOptions{Isolation: read, ReadOnly: true}
-	d.writeOpt = &sql.TxOptions{Isolation: write, ReadOnly: false}
+	d.log = dummyLogger{}
+	if config.Log != nil {
+		d.log = config.Log
+	}
+
+	d.readOpt = &sql.TxOptions{Isolation: config.ReadOpt, ReadOnly: true}
+	d.writeOpt = &sql.TxOptions{Isolation: config.WriteOpt, ReadOnly: false}
 
 	return d, nil
 }
@@ -56,8 +78,9 @@ func (d *DB) Update(ctx context.Context) (tx *Tx, err error) {
 
 // Tx represents a database transaction
 type Tx struct {
-	done  bool
 	mu    sync.Mutex
+	log   Logger
+	done  bool
 	tx    *sql.Tx
 	ctx   context.Context
 	hash  maphash.Hash
@@ -66,19 +89,25 @@ type Tx struct {
 
 // Exec executes a query that doesn't return rows.
 func (t *Tx) Exec(stmt statement.Statement) (r sql.Result, err error) {
+	start := time.Now()
 	t.mu.Lock()
-	defer t.mu.Unlock()
 
 	query, err := stmt.String()
 	if err != nil {
+		t.mu.Unlock()
 		return nil, err
 	}
 
-	return t.tx.ExecContext(t.ctx, query)
+	r, err = t.tx.ExecContext(t.ctx, query)
+	t.mu.Unlock()
+
+	t.log.Log("", "db.exec", err, time.Since(start), query)
+	return r, err
 }
 
 // Query executes a query that returns rows.
 func (t *Tx) Query(dst interface{}, stmt statement.Statement) (err error) {
+	start := time.Now()
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
@@ -96,6 +125,7 @@ func (t *Tx) Query(dst interface{}, stmt statement.Statement) (err error) {
 
 	if r, ok := t.cache[key]; ok {
 		reflect.ValueOf(dst).Elem().Set(r)
+		t.log.Log(strconv.FormatUint(key, 32), "db.query.cached", nil, time.Since(start), query)
 		return nil
 	}
 
@@ -109,9 +139,12 @@ func (t *Tx) Query(dst interface{}, stmt statement.Statement) (err error) {
 	}
 
 	if err == nil {
+		t.log.Log(strconv.FormatUint(key, 32), "db.query.cache.add", nil, time.Since(start), query)
 		t.cache[key] = reflect.ValueOf(dst).Elem()
+		return nil
 	}
 
+	defer t.log.Log(strconv.FormatUint(key, 32), "db.query", err, time.Since(start), query)
 	return err
 }
 
