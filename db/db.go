@@ -48,13 +48,18 @@ func New(db *sql.DB, config Config) (d *DB, err error) {
 }
 
 // Tx creates a database transaction with the provided options.
-func (d *DB) Tx(ctx context.Context, opts *sql.TxOptions) (tx *Tx, err error) {
+func (d *DB) Tx(ctx context.Context, tid string, opts *sql.TxOptions) (tx *Tx, err error) {
 	t, err := d.db.BeginTx(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
 
+	if tid == "" {
+		tid = strconv.FormatInt(time.Now().UnixNano(), 32)
+	}
+
 	return &Tx{
+		tid:   tid,
 		log:   d.log,
 		tx:    t,
 		ctx:   ctx,
@@ -64,18 +69,19 @@ func (d *DB) Tx(ctx context.Context, opts *sql.TxOptions) (tx *Tx, err error) {
 }
 
 // Read creates a read-only transaction with the default DB isolation level.
-func (d *DB) Read(ctx context.Context) (tx *Tx, err error) {
-	return d.Tx(ctx, d.readOpt)
+func (d *DB) Read(ctx context.Context, tid string) (tx *Tx, err error) {
+	return d.Tx(ctx, tid, d.readOpt)
 }
 
 // Update creates a read-write transaction with the default DB isolation level.
-func (d *DB) Update(ctx context.Context) (tx *Tx, err error) {
-	return d.Tx(ctx, d.writeOpt)
+func (d *DB) Update(ctx context.Context, tid string) (tx *Tx, err error) {
+	return d.Tx(ctx, tid, d.writeOpt)
 }
 
 // Tx represents a database transaction
 type Tx struct {
 	mu    sync.Mutex
+	tid   string
 	log   Logger
 	done  bool
 	tx    *sql.Tx
@@ -98,7 +104,7 @@ func (t *Tx) Exec(stmt statement.Statement) (r sql.Result, err error) {
 
 	r, err = t.tx.ExecContext(t.ctx, query)
 
-	t.log("", "db.exec", err, time.Since(start), query)
+	t.log("db.tx.exec", t.tid, err, time.Since(start), query)
 	return r, err
 }
 
@@ -122,7 +128,7 @@ func (t *Tx) Query(dst interface{}, stmt statement.Statement) (err error) {
 
 	if r, ok := t.cache[key]; ok {
 		reflect.ValueOf(dst).Elem().Set(r)
-		t.log(strconv.FormatUint(key, 32), "db.query.cached", nil, time.Since(start), query)
+		t.log("db.tx.query.cached", t.tid, nil, time.Since(start), query)
 		return nil
 	}
 
@@ -136,28 +142,31 @@ func (t *Tx) Query(dst interface{}, stmt statement.Statement) (err error) {
 	}
 
 	if err == nil {
-		t.log(strconv.FormatUint(key, 32), "db.query.cache.add", nil, time.Since(start), query)
+		t.log("db.tx.query.cache.add", t.tid, nil, time.Since(start), query)
 		t.cache[key] = reflect.ValueOf(dst).Elem()
 		return nil
 	}
 
-	t.log(strconv.FormatUint(key, 32), "db.query", err, time.Since(start), query)
+	t.log("db.tx.query", t.tid, err, time.Since(start), query)
 	return err
 }
 
 // Commit the transaction.
 func (t *Tx) Commit() (err error) {
+	start := time.Now()
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
 	err = t.tx.Commit()
 	t.done = true
 
+	t.log("db.tx.commit", t.tid, err, time.Since(start), "")
 	return err
 }
 
 // Rollback aborts the transaction.
 func (t *Tx) Rollback() (err error) {
+	start := time.Now()
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
@@ -167,5 +176,7 @@ func (t *Tx) Rollback() (err error) {
 
 	err = t.tx.Rollback()
 	t.done = true
+
+	t.log("db.tx.rollback", t.tid, err, time.Since(start), "")
 	return err
 }
