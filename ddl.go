@@ -57,7 +57,7 @@ func Rename(query string, values ...interface{}) *DDL {
 }
 
 func (s *DDL) Build(buf Buffer) (err error) {
-	return s.part.build(buf, true)
+	return s.build(buf, true)
 }
 
 func (s *DDL) String() (q string, err error) {

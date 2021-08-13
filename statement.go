@@ -2,7 +2,10 @@ package statement
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
+
+	"github.com/brunotm/statement/scan"
 )
 
 var (
@@ -40,9 +43,34 @@ func buildWhere(buf Buffer, where []Statement) (err error) {
 	return nil
 }
 
+func InterfaceSlice(slice interface{}) []interface{} {
+	s := reflect.ValueOf(slice)
+	if s.Kind() != reflect.Slice {
+		panic("InterfaceSlice() given a non-slice type")
+	}
+
+	// Keep the distinction between nil and empty slice input
+	if s.IsNil() {
+		return nil
+	}
+
+	ret := make([]interface{}, s.Len())
+
+	for i := 0; i < s.Len(); i++ {
+		ret[i] = s.Index(i).Interface()
+	}
+
+	return ret
+}
+
 // buildWhereIn builds a `WHERE IN (values)` clause.
 func buildWhereIn(column string, values ...interface{}) (p *part) {
 	p = &part{}
+
+	if len(values) == 1 && scan.IsSlice(values[0]) {
+		values = InterfaceSlice(values[0])
+	}
+
 	p.query = column + ` IN (`
 	for x := 0; x < len(values); x++ {
 		if x == 0 {

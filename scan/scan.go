@@ -16,14 +16,14 @@ var (
 	structMapCache = sync.Map{} // reflect.Type / map[string][]int
 )
 
-// func isSlice(v interface{}) bool {
-// 	kind := reflect.TypeOf(v).Kind()
-// 	if reflect.TypeOf(v).Kind() == reflect.Ptr {
-// 		return reflect.Indirect(reflect.ValueOf(v)).Kind() == reflect.Slice
-// 	}
+func IsSlice(v interface{}) bool {
+	kind := reflect.TypeOf(v).Kind()
+	if reflect.TypeOf(v).Kind() == reflect.Ptr {
+		return reflect.Indirect(reflect.ValueOf(v)).Kind() == reflect.Slice
+	}
 
-// 	return kind == reflect.Slice
-// }
+	return kind == reflect.Slice
+}
 
 // Load loads any value from sql.Rows
 func Load(rows *sql.Rows, value interface{}) (int, error) {
