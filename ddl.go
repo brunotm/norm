@@ -46,16 +46,6 @@ func Truncate(query string, values ...interface{}) *DDL {
 	}
 }
 
-// Rename creates a new `RENAME` DDL statement.
-func Rename(query string, values ...interface{}) *DDL {
-	return &DDL{
-		part: &part{
-			query:  "RENAME " + query,
-			values: values,
-		},
-	}
-}
-
 func (s *DDL) Build(buf Buffer) (err error) {
 	return s.build(buf, true)
 }
