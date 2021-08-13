@@ -53,4 +53,4 @@ go test -v -cover .
 ```
 
 ## Acknowledgements
-The statement package is inspired by the great [mailru/dbr](https://github.com/mailru/dbr)
+The statement package is inspired by the great package [mailru/dbr](https://github.com/mailru/dbr)
