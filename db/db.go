@@ -55,6 +55,7 @@ func (d *DB) Tx(ctx context.Context, opts *sql.TxOptions) (tx *Tx, err error) {
 	}
 
 	return &Tx{
+		log:   d.log,
 		tx:    t,
 		ctx:   ctx,
 		cache: map[uint64]reflect.Value{},
@@ -87,6 +88,7 @@ type Tx struct {
 func (t *Tx) Exec(stmt statement.Statement) (r sql.Result, err error) {
 	start := time.Now()
 	t.mu.Lock()
+	defer t.mu.Unlock()
 
 	query, err := stmt.String()
 	if err != nil {
@@ -95,7 +97,6 @@ func (t *Tx) Exec(stmt statement.Statement) (r sql.Result, err error) {
 	}
 
 	r, err = t.tx.ExecContext(t.ctx, query)
-	t.mu.Unlock()
 
 	t.log("", "db.exec", err, time.Since(start), query)
 	return r, err
@@ -140,7 +141,7 @@ func (t *Tx) Query(dst interface{}, stmt statement.Statement) (err error) {
 		return nil
 	}
 
-	defer t.log(strconv.FormatUint(key, 32), "db.query", err, time.Since(start), query)
+	t.log(strconv.FormatUint(key, 32), "db.query", err, time.Since(start), query)
 	return err
 }
 
