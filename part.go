@@ -45,7 +45,9 @@ func (p *part) build(buf Buffer, keyword bool) (err error) {
 
 		switch arg := arg.(type) {
 		case Statement:
+			buf.WriteString("(")
 			err = arg.Build(buf)
+			buf.WriteString(")")
 		default:
 			err = writeValue(buf, arg, keyword)
 		}
