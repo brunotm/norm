@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"hash/maphash"
 	"reflect"
 	"strconv"
@@ -116,6 +117,7 @@ func (t *Tx) Query(dst interface{}, stmt statement.Statement) (err error) {
 
 	query, err := stmt.String()
 	if err != nil {
+		t.log("db.tx.query.build", t.tid, err, time.Since(start), fmt.Sprintf("%#v", stmt))
 		return err
 	}
 
