@@ -35,8 +35,8 @@ type SelectStatement struct {
 }
 
 // Select creates a new `SELECT` statement.
-func Select(columns ...string) *SelectStatement {
-	return &SelectStatement{columns: columns}
+func Select() *SelectStatement {
+	return &SelectStatement{}
 }
 
 // Columns set the `SELECT` columns.

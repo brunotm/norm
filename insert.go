@@ -20,8 +20,13 @@ type InsertStatement struct {
 }
 
 // Insert creates a new `INSERT` statement.
-func Insert(table string) (s *InsertStatement) {
-	return &InsertStatement{table: table}
+func Insert() (s *InsertStatement) {
+	return &InsertStatement{}
+}
+
+func (s *InsertStatement) Into(table string) (st *InsertStatement) {
+	s.table = table
+	return s
 }
 
 // Columns specifies the columns for the `INSERT` statement.

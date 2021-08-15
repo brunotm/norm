@@ -15,8 +15,13 @@ type UpdateStatement struct {
 }
 
 // Update creates a new update statement
-func Update(table string) (s *UpdateStatement) {
-	return &UpdateStatement{table: table, values: make(map[string]interface{})}
+func Update() (s *UpdateStatement) {
+	return &UpdateStatement{values: make(map[string]interface{})}
+}
+
+func (s *UpdateStatement) Table(table string) *UpdateStatement {
+	s.table = table
+	return s
 }
 
 // Set adds a `SET column = value` clause, multiple calls to set append

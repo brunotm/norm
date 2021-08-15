@@ -14,14 +14,14 @@ var (
 		{
 			name:   "simple_set",
 			expect: `UPDATE users SET email = 'john.doe@email.com', role = 'admin', user = 'john.doe' WHERE id = 123`,
-			stmt: Update("users").Set("user", "john.doe").Set("email", "john.doe@email.com").
+			stmt: Update().Table("users").Set("user", "john.doe").Set("email", "john.doe@email.com").
 				Set("role", "admin").Where("id = ?", 123),
 			wantErr: false,
 		},
 		{
 			name:   "simple_setmap",
 			expect: `UPDATE users SET email = 'john.doe@email.com', role = 'admin', user = 'john.doe' WHERE id = 123`,
-			stmt: Update("users").SetMap(map[string]interface{}{
+			stmt: Update().Table("users").SetMap(map[string]interface{}{
 				"user":  "john.doe",
 				"email": "john.doe@email.com",
 				"role":  "admin",
@@ -31,7 +31,7 @@ var (
 		{
 			name:   "where_in",
 			expect: `UPDATE users SET email = 'john.doe@email.com', role = 'admin', user = 'john.doe' WHERE id IN (123,321)`,
-			stmt: Update("users").SetMap(map[string]interface{}{
+			stmt: Update().Table("users").SetMap(map[string]interface{}{
 				"user":  "john.doe",
 				"email": "john.doe@email.com",
 				"role":  "admin",
@@ -41,8 +41,8 @@ var (
 		{
 			name:   "with",
 			expect: `WITH select_offices AS (SELECT country,city,address,postal_code FROM offices WHERE country IN ('uk','es','pt','fr')) UPDATE users SET email = 'john.doe@email.com', role = 'admin', user = 'john.doe' WHERE id IN (123,321)`,
-			stmt: Update("users").
-				With("select_offices", Select("country", "city", "address", "postal_code").
+			stmt: Update().Table("users").
+				With("select_offices", Select().Columns("country", "city", "address", "postal_code").
 					From("offices").WhereIn("country", "uk", "es", "pt", "fr")).
 				SetMap(map[string]interface{}{
 					"user":  "john.doe",
@@ -54,7 +54,7 @@ var (
 		{
 			name:   "returning",
 			expect: `UPDATE users SET email = 'john.doe@email.com', role = 'admin', user = 'john.doe' WHERE id IN (123,321) RETURNING email`,
-			stmt: Update("users").SetMap(map[string]interface{}{
+			stmt: Update().Table("users").SetMap(map[string]interface{}{
 				"user":  "john.doe",
 				"email": "john.doe@email.com",
 				"role":  "admin",

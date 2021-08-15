@@ -14,31 +14,31 @@ var (
 		{
 			name:    "simple",
 			expect:  `DELETE FROM users WHERE email = 'john.doe@email.com' AND role = 'admin'`,
-			stmt:    Delete("users").Where("email = ?", "john.doe@email.com").Where("role = ?", "admin"),
+			stmt:    Delete().From("users").Where("email = ?", "john.doe@email.com").Where("role = ?", "admin"),
 			wantErr: false,
 		},
 		{
 			name:    "where_in",
 			expect:  `DELETE FROM users WHERE role IN ('admin','owner')`,
-			stmt:    Delete("users").WhereIn("role", "admin", "owner"),
+			stmt:    Delete().From("users").WhereIn("role", "admin", "owner"),
 			wantErr: false,
 		},
 		{
 			name:   "with",
-			expect: `WITH roles_to_delete AS (SELECT id,name FROM roles WHERE expires_at < now()-'1m'::interval) DELETE FROM users WHERE role IN (SELECT name FROM roles_to_delete)`,
-			stmt: Delete("users").WhereIn("role", Select("name").From("roles_to_delete")).
-				With("roles_to_delete", Select("id", "name").From("roles").Where("expires_at < now()-?::interval", "1m")),
+			expect: `WITH roles_to_delete AS (SELECT id,name FROM roles WHERE expires_at < now()-'1m'::interval) DELETE FROM users WHERE role IN ((SELECT name FROM roles_to_delete))`,
+			stmt: Delete().With("roles_to_delete", Select().Columns("id", "name").From("roles").Where("expires_at < now()-?::interval", "1m")).
+				From("users").WhereIn("role", Select().Columns("name").From("roles_to_delete")),
 			wantErr: false,
 		},
 		{
 			name:    "returning",
 			expect:  `DELETE FROM users WHERE email = 'john.doe@email.com' AND role = 'admin' RETURNING id`,
-			stmt:    Delete("users").Where("email = ?", "john.doe@email.com").Where("role = ?", "admin").Returning("id"),
+			stmt:    Delete().From("users").Where("email = ?", "john.doe@email.com").Where("role = ?", "admin").Returning("id"),
 			wantErr: false,
 		},
 		{
 			name:    "invalid_number_of_arguments",
-			stmt:    Delete("users").Where("email = ?").Where("role = ?", "admin").Returning("id"),
+			stmt:    Delete().From("users").Where("email = ?").Where("role = ?", "admin").Returning("id"),
 			wantErr: true,
 		},
 	}

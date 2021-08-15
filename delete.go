@@ -13,8 +13,14 @@ type DeleteStatement struct {
 }
 
 // Delete creates a new `DELETE` statement.
-func Delete(table string) (s *DeleteStatement) {
-	return &DeleteStatement{table: table}
+func Delete() (s *DeleteStatement) {
+	return &DeleteStatement{}
+}
+
+// From sets the table name or for the `FROM` clause.
+func (s *DeleteStatement) From(table string) *DeleteStatement {
+	s.table = table
+	return s
 }
 
 // With adds a `WITH alias AS (stmt)`

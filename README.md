@@ -54,18 +54,17 @@ It does not intend to be used as an ORM or a DSL that hides the SQL code and log
 ### Statement builder Usage (with sql.Tx)
 
 ```go
-query, err := statement.Select("sub_part", "SUM(quantity) as total_quantity").
-	From("included_parts").GroupBy("sub_part").
-	WithRecursive(
+query, err := statement.Select().WithRecursive(
 		"included_parts",
-		Select("sub_part", "part", "quantity").
+		Select().Columns("sub_part", "part", "quantity").
 			From("parts").Where("part = ?", "our_product").
 			UnionAll(
-				Select("p.sub_part", "p.part", "p.quantity").
+				Select().Columns("p.sub_part", "p.part", "p.quantity").
 					From("included_parts AS pr").
 					JoinInner("parts AS p", "p.part = pr.sub_part"),
 			),
-	).String()
+	).Columns("sub_part", "SUM(quantity) as total_quantity").
+		From("included_parts").GroupBy("sub_part").String()
 
 	if err != nil {
 		// handle error
@@ -104,18 +103,17 @@ conf := db.Config{
 		// handle err
 	}
 
-	stmt := statement.Select("sub_part", "SUM(quantity) as total_quantity").
-	From("included_parts").GroupBy("sub_part").
-	WithRecursive(
+	stmt := statement.Select().WithRecursive(
 		"included_parts",
-		Select("sub_part", "part", "quantity").
+		Select().Columns("sub_part", "part", "quantity").
 			From("parts").Where("part = ?", "our_product").
 			UnionAll(
-				Select("p.sub_part", "p.part", "p.quantity").
+				Select().Columns("p.sub_part", "p.part", "p.quantity").
 					From("included_parts AS pr").
 					JoinInner("parts AS p", "p.part = pr.sub_part"),
 			),
-	)
+	).Columns("sub_part", "SUM(quantity) as total_quantity").
+		From("included_parts").GroupBy("sub_part")
 
 	var parts []part
 	err = tx.Query(&parts, stmt)
