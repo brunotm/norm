@@ -8,16 +8,18 @@
 This package provides a simple SQL query builder for Go which aims for simplicity, performance
 and to stand out of the way when working with SQL code in Go.
 
-It does not intend to be used as an ORM or a DSL that hides the SQL code and logic.
+**It is not an ORM or a magic DSL that hides the SQL code and logic.**
 
 ## Currently supported
 
 	* Select
+    	* Columns
+    	* From (table or statement.SelectStatement)
     	* Join
     	* Where
     	* WhereIn
-    	* With
-    	* WithRecursive
+    	* With (statement.SelectStatement)
+    	* WithRecursive (statement.SelectStatement)
     	* Having
     	* GroupBy
     	* Order
@@ -26,23 +28,26 @@ It does not intend to be used as an ORM or a DSL that hides the SQL code and log
     	* Distinct
     	* ForUpdate
     	* SkipLocked
-    	* Union
-    	* UnionAll
+    	* Union (statement.SelectStatement)
+    	* UnionAll (statement.SelectStatement)
 	* Insert
-    	* With
+    	* Into
+    	* With (statement.SelectStatement)
     	* Returning
     	* Record (from struct)
-    	* ValuesSelect (from select statement)
+    	* ValuesSelect (statement.SelectStatement)
     	* OnConflictUpdate
 	* Update
+    	* Table
     	* Set
     	* SetMap
-    	* With
+    	* With (statement.SelectStatement)
     	* Where
     	* WhereIn
     	* Returning
 	* Delete
-    	* With
+    	* From
+    	* With (statement.SelectStatement)
     	* Where
     	* WhereIn
     	* Returning
@@ -51,13 +56,25 @@ It does not intend to be used as an ORM or a DSL that hides the SQL code and log
 	* Truncate
 	* Drop
 
-### Statement builder Usage (with sql.Tx)
+## TODO
+	* Record iterator
+
+## Statement builder Usage (with database/sql)
 
 ```go
-query, err := statement.Select().WithRecursive(
+	type Part struct {
+		ID string
+		Name string
+	}
+
+	part := Part{
+		Name: "part01"
+	}
+
+	query, err := statement.Select().WithRecursive(
 		"included_parts",
 		Select().Columns("sub_part", "part", "quantity").
-			From("parts").Where("part = ?", "our_product").
+			From("parts").Where("part = ?", part.Name).
 			UnionAll(
 				Select().Columns("p.sub_part", "p.part", "p.quantity").
 					From("included_parts AS pr").
@@ -80,7 +97,7 @@ The statement/db package provides a thin wrapper around a `sql.DB` which enforce
 access to the database with configurable isolation levels, transaction scoped query cache and scanning `sql.Rows` into structs and query logging.
 
 ```go
-conf := db.Config{
+	conf := db.Config{
 		Log: func(message, id string, err error, d time.Duration, query string) {
 			log.Println(
 				"message:", message,
@@ -95,34 +112,38 @@ conf := db.Config{
 
 	d, err := db.New(sdb, conf)
 	if err != nil {
-		// handle err
+    	// handle err
 	}
 
-	tx, err = t.db.Update(ctx, id)
-	if err != nil {
-		// handle err
+	type Part struct {
+    	ID string
+    	Name string
+    	TotalQuantity int64
+	}
+
+	part := Part{
+	Name: "part01"
 	}
 
 	stmt := statement.Select().WithRecursive(
-		"included_parts",
-		Select().Columns("sub_part", "part", "quantity").
-			From("parts").Where("part = ?", "our_product").
-			UnionAll(
-				Select().Columns("p.sub_part", "p.part", "p.quantity").
-					From("included_parts AS pr").
-					JoinInner("parts AS p", "p.part = pr.sub_part"),
-			),
-	).Columns("sub_part", "SUM(quantity) as total_quantity").
-		From("included_parts").GroupBy("sub_part")
+	"included_parts",
+	Select().Columns("sub_part", "part", "quantity").
+		From("parts").Where("part = ?", part.Name).
+		UnionAll(
+			Select().Columns("p.sub_part", "p.part", "p.quantity").
+				From("included_parts AS pr").
+				JoinInner("parts AS p", "p.part = pr.sub_part"),
+		),
+	).Columns("sub_part as name", "SUM(quantity) as total_quantity").
+	From("included_parts").GroupBy("name")
 
-	var parts []part
+	var parts []Part
 	err = tx.Query(&parts, stmt)
 	if err != nil {
-		// handle err
+	// handle err
 	}
 
 	// do things with parts
-
 ```
 
 ## Install
