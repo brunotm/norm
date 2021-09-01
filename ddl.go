@@ -2,6 +2,7 @@ package statement
 
 import "strings"
 
+// DDL represents a data definition statement.
 type DDL struct {
 	comment []Statement
 	*part
@@ -27,7 +28,7 @@ func Create(query string, values ...interface{}) *DDL {
 	}
 }
 
-// Create creates a new `ALTER` DDL statement.
+// Alter creates a new `ALTER` DDL statement.
 func Alter(query string, values ...interface{}) *DDL {
 	return &DDL{
 		part: &part{
@@ -37,7 +38,7 @@ func Alter(query string, values ...interface{}) *DDL {
 	}
 }
 
-// Create creates a new `DROP` DDL statement.
+// Drop creates a new `DROP` DDL statement.
 func Drop(query string, values ...interface{}) *DDL {
 	return &DDL{
 		part: &part{
@@ -57,16 +58,18 @@ func Truncate(query string, values ...interface{}) *DDL {
 	}
 }
 
+// Build builds the statement into the given buffer.
 func (s *DDL) Build(buf Buffer) (err error) {
 	for x := 0; x < len(s.comment); x++ {
 		if err = s.comment[x].Build(buf); err != nil {
 			return err
 		}
-		buf.WriteString("\n")
+		_, _ = buf.WriteString("\n")
 	}
 	return s.build(buf, true)
 }
 
+// String builds the statement and returns the resulting query string.
 func (s *DDL) String() (q string, err error) {
 	var buf strings.Builder
 	if err = s.Build(&buf); err != nil {

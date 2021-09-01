@@ -64,23 +64,23 @@ func (s *DeleteStatement) Build(buf Buffer) (err error) {
 		if err = s.comment[x].Build(buf); err != nil {
 			return err
 		}
-		buf.WriteString("\n")
+		_, _ = buf.WriteString("\n")
 	}
 
 	if s.with != nil {
 		if err = s.with.Build(buf); err != nil {
 			return err
 		}
-		buf.WriteString(" ")
+		_, _ = buf.WriteString(" ")
 	}
 
-	buf.WriteString("DELETE FROM " + s.table)
+	_, _ = buf.WriteString("DELETE FROM " + s.table)
 	if err = buildWhere(buf, s.where); err != nil {
 		return err
 	}
 
 	if len(s.returning) > 0 {
-		buf.WriteString(" RETURNING " + strings.Join(s.returning, ","))
+		_, _ = buf.WriteString(" RETURNING " + strings.Join(s.returning, ","))
 	}
 
 	return nil

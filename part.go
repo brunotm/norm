@@ -33,11 +33,11 @@ func (p *part) build(buf Buffer, keyword bool) (err error) {
 	for {
 		idx := strings.Index(query, "?")
 		if idx == -1 {
-			buf.WriteString(query)
+			_, _ = buf.WriteString(query)
 			break
 		}
 
-		buf.WriteString(query[:idx])
+		_, _ = buf.WriteString(query[:idx])
 		query = query[idx+1:]
 
 		arg := p.values[valueIdx]
@@ -45,9 +45,9 @@ func (p *part) build(buf Buffer, keyword bool) (err error) {
 
 		switch arg := arg.(type) {
 		case Statement:
-			buf.WriteString("(")
+			_, _ = buf.WriteString("(")
 			err = arg.Build(buf)
-			buf.WriteString(")")
+			_, _ = buf.WriteString(")")
 		default:
 			err = writeValue(buf, arg, keyword)
 		}

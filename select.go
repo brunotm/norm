@@ -5,13 +5,18 @@ import (
 	"strings"
 )
 
+// Join types
 type Join string
 
 var (
-	InnerJoin      Join = "INNER JOIN"
-	LeftOuterJoin  Join = "LEFT OUTER JOIN"
+	// InnerJoin type
+	InnerJoin Join = "INNER JOIN"
+	// LeftOuterJoin type
+	LeftOuterJoin Join = "LEFT OUTER JOIN"
+	// RightOuterJoin type
 	RightOuterJoin Join = "RIGHT OUTER JOIN"
-	FullOuterJoin  Join = "FULL OUTER JOIN"
+	// FullOuterJoin type
+	FullOuterJoin Join = "FULL OUTER JOIN"
 )
 
 // SelectStatement statement.
@@ -79,22 +84,22 @@ func (s *SelectStatement) Join(join Join, table, cond string, values ...interfac
 	return s
 }
 
-// Join adds a `INNER JOIN` clause.
+// JoinInner adds a `INNER JOIN` clause.
 func (s *SelectStatement) JoinInner(table, cond string, values ...interface{}) *SelectStatement {
 	return s.Join(InnerJoin, table, cond, values...)
 }
 
-// Join adds a `LEFT OUTER JOIN` clause.
+// JoinLeft adds a `LEFT OUTER JOIN` clause.
 func (s *SelectStatement) JoinLeft(table, cond string, values ...interface{}) *SelectStatement {
 	return s.Join(LeftOuterJoin, table, cond, values...)
 }
 
-// Join adds a `RIGHT OUTER JOIN` clause.
+// JoinRight adds a `RIGHT OUTER JOIN` clause.
 func (s *SelectStatement) JoinRight(table, cond string, values ...interface{}) *SelectStatement {
 	return s.Join(RightOuterJoin, table, cond, values...)
 }
 
-// Join adds a `FULL OUTER JOIN` clause.
+// JoinFull adds a `FULL OUTER JOIN` clause.
 func (s *SelectStatement) JoinFull(table, cond string, values ...interface{}) *SelectStatement {
 	return s.Join(FullOuterJoin, table, cond, values...)
 }
@@ -197,31 +202,31 @@ func (s *SelectStatement) Build(buf Buffer) (err error) {
 		if err = s.comment[x].Build(buf); err != nil {
 			return err
 		}
-		buf.WriteString("\n")
+		_, _ = buf.WriteString("\n")
 	}
 
 	if s.with != nil {
 		if err = s.with.Build(buf); err != nil {
 			return err
 		}
-		buf.WriteString(" ")
+		_, _ = buf.WriteString(" ")
 	}
 
-	buf.WriteString("SELECT ")
+	_, _ = buf.WriteString("SELECT ")
 
 	if s.isDistinct {
-		buf.WriteString("DISTINCT ")
+		_, _ = buf.WriteString("DISTINCT ")
 	}
 
-	buf.WriteString(strings.Join(s.columns, ","))
+	_, _ = buf.WriteString(strings.Join(s.columns, ","))
 
 	if s.table != nil {
-		buf.WriteString(" FROM ")
+		_, _ = buf.WriteString(" FROM ")
 		switch s.tableStatement {
 		case true:
-			buf.WriteString(`( `)
+			_, _ = buf.WriteString(`( `)
 			err = s.table.Build(buf)
-			buf.WriteString(` )`)
+			_, _ = buf.WriteString(` )`)
 		case false:
 			err = s.table.Build(buf)
 		}
@@ -232,7 +237,7 @@ func (s *SelectStatement) Build(buf Buffer) (err error) {
 	}
 
 	for x := 0; x < len(s.join); x++ {
-		buf.WriteString(" ")
+		_, _ = buf.WriteString(" ")
 		err = s.join[x].Build(buf)
 		if err != nil {
 			return err
@@ -244,15 +249,15 @@ func (s *SelectStatement) Build(buf Buffer) (err error) {
 	}
 
 	if len(s.groupBy) > 0 {
-		buf.WriteString(" GROUP BY ")
-		buf.WriteString(strings.Join(s.groupBy, "', '"))
+		_, _ = buf.WriteString(" GROUP BY ")
+		_, _ = buf.WriteString(strings.Join(s.groupBy, "', '"))
 	}
 
 	for x := 0; x < len(s.having); x++ {
 		if x == 0 {
-			buf.WriteString(" HAVING ")
+			_, _ = buf.WriteString(" HAVING ")
 		} else {
-			buf.WriteString(" AND ")
+			_, _ = buf.WriteString(" AND ")
 		}
 
 		if err = s.having[x].Build(buf); err != nil {
@@ -262,25 +267,25 @@ func (s *SelectStatement) Build(buf Buffer) (err error) {
 	}
 
 	if len(s.orderBy) > 0 {
-		buf.WriteString(" ORDER BY ")
-		buf.WriteString(strings.Join(s.orderBy, `,`))
-		buf.WriteString(" " + s.order)
+		_, _ = buf.WriteString(" ORDER BY ")
+		_, _ = buf.WriteString(strings.Join(s.orderBy, `,`))
+		_, _ = buf.WriteString(" " + s.order)
 	}
 
 	if s.limitCount > 0 {
-		buf.WriteString(fmt.Sprintf(" LIMIT %d OFFSET %d", s.limitCount, s.offsetCount))
+		_, _ = buf.WriteString(fmt.Sprintf(" LIMIT %d OFFSET %d", s.limitCount, s.offsetCount))
 	}
 
 	if s.isForUpdate {
-		buf.WriteString(" FOR UPDATE")
+		_, _ = buf.WriteString(" FOR UPDATE")
 	}
 
 	if s.isSkipLocked {
-		buf.WriteString(" SKIP LOCKED")
+		_, _ = buf.WriteString(" SKIP LOCKED")
 	}
 
 	if s.union != nil {
-		buf.WriteString(" ")
+		_, _ = buf.WriteString(" ")
 		if err = s.union.Build(buf); err != nil {
 			return err
 		}

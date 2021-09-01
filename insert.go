@@ -35,6 +35,7 @@ func (s *InsertStatement) Comment(c string, values ...interface{}) *InsertStatem
 	return s
 }
 
+// Into specifies the table on which to perform the insert
 func (s *InsertStatement) Into(table string) (st *InsertStatement) {
 	s.table = table
 	return s
@@ -64,6 +65,8 @@ func (s *InsertStatement) Values(values ...interface{}) (st *InsertStatement) {
 	return s
 }
 
+// Record add the values from the given struct for insert.
+// If no columns where specified before calling Record(), the columns will be defined by the struct fields.
 func (s *InsertStatement) Record(structValue interface{}) (st *InsertStatement) {
 	v := reflect.Indirect(reflect.ValueOf(structValue))
 
@@ -147,30 +150,30 @@ func (s *InsertStatement) Build(buf Buffer) (err error) {
 		if err = s.comment[x].Build(buf); err != nil {
 			return err
 		}
-		buf.WriteString("\n")
+		_, _ = buf.WriteString("\n")
 	}
 
 	if s.with != nil {
 		if err = s.with.Build(buf); err != nil {
 			return err
 		}
-		buf.WriteString(" ")
+		_, _ = buf.WriteString(" ")
 	}
 
-	buf.WriteString("INSERT INTO " + s.table)
+	_, _ = buf.WriteString("INSERT INTO " + s.table)
 
-	buf.WriteString("(")
-	buf.WriteString(strings.Join(s.columns, ","))
-	buf.WriteString(")")
+	_, _ = buf.WriteString("(")
+	_, _ = buf.WriteString(strings.Join(s.columns, ","))
+	_, _ = buf.WriteString(")")
 
 	if s.valuesSelect != nil {
-		buf.WriteString(" (")
+		_, _ = buf.WriteString(" (")
 		if err = s.valuesSelect.Build(buf); err != nil {
 			return err
 		}
-		buf.WriteString(")")
+		_, _ = buf.WriteString(")")
 	} else {
-		buf.WriteString(" VALUES ")
+		_, _ = buf.WriteString(" VALUES ")
 		for x := 0; x < len(s.values); x++ {
 			if err = s.values[0].Build(buf); err != nil {
 				return err
@@ -179,14 +182,14 @@ func (s *InsertStatement) Build(buf Buffer) (err error) {
 	}
 
 	if s.onConflict != nil {
-		buf.WriteString(" ")
+		_, _ = buf.WriteString(" ")
 		if err = s.onConflict.Build(buf); err != nil {
 			return err
 		}
 	}
 
 	if len(s.returning) > 0 {
-		buf.WriteString(" RETURNING " + strings.Join(s.returning, ","))
+		_, _ = buf.WriteString(" RETURNING " + strings.Join(s.returning, ","))
 	}
 
 	return nil

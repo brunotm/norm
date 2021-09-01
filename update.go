@@ -30,6 +30,7 @@ func (s *UpdateStatement) Comment(c string, values ...interface{}) *UpdateStatem
 	return s
 }
 
+// Table specifies the table for update.
 func (s *UpdateStatement) Table(table string) *UpdateStatement {
 	s.table = table
 	return s
@@ -80,18 +81,18 @@ func (s *UpdateStatement) Build(buf Buffer) (err error) {
 		if err = s.comment[x].Build(buf); err != nil {
 			return err
 		}
-		buf.WriteString("\n")
+		_, _ = buf.WriteString("\n")
 	}
 
 	if s.with != nil {
 		if err = s.with.Build(buf); err != nil {
 			return err
 		}
-		buf.WriteString(" ")
+		_, _ = buf.WriteString(" ")
 	}
 
-	buf.WriteString("UPDATE " + s.table)
-	buf.WriteString(" SET")
+	_, _ = buf.WriteString("UPDATE " + s.table)
+	_, _ = buf.WriteString(" SET")
 
 	sorted := make([]string, 0, len(s.values))
 	for k := range s.values {
@@ -101,11 +102,13 @@ func (s *UpdateStatement) Build(buf Buffer) (err error) {
 
 	for x := 0; x < len(sorted); x++ {
 		if x > 0 {
-			buf.WriteString(", " + sorted[x] + " = ")
+			_, _ = buf.WriteString(", " + sorted[x] + " = ")
 		} else {
-			buf.WriteString(" " + sorted[x] + " = ")
+			_, _ = buf.WriteString(" " + sorted[x] + " = ")
 		}
-		writeValue(buf, s.values[sorted[x]], false)
+		if err = writeValue(buf, s.values[sorted[x]], false); err != nil {
+			return err
+		}
 	}
 
 	if err = buildWhere(buf, s.where); err != nil {
@@ -113,7 +116,7 @@ func (s *UpdateStatement) Build(buf Buffer) (err error) {
 	}
 
 	if len(s.returning) > 0 {
-		buf.WriteString(" RETURNING " + strings.Join(s.returning, ","))
+		_, _ = buf.WriteString(" RETURNING " + strings.Join(s.returning, ","))
 	}
 
 	return nil

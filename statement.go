@@ -9,7 +9,10 @@ import (
 )
 
 var (
-	ErrEmptyWithAlias   = fmt.Errorf("statement: empty with clause alias")
+	// ErrEmptyWithAlias will be returned when the a alias for a with clause is empty
+	ErrEmptyWithAlias = fmt.Errorf("statement: empty with clause alias")
+
+	// ErrInvalidArgNumber will be returned when there is a mismatch between placeholders and values for interpolation.
 	ErrInvalidArgNumber = fmt.Errorf("statement: invalid number of arguments")
 )
 
@@ -30,9 +33,9 @@ type Statement interface {
 func buildWhere(buf Buffer, where []Statement) (err error) {
 	for x := 0; x < len(where); x++ {
 		if x == 0 {
-			buf.WriteString(" WHERE ")
+			_, _ = buf.WriteString(" WHERE ")
 		} else {
-			buf.WriteString(" AND ")
+			_, _ = buf.WriteString(" AND ")
 		}
 
 		if err = where[x].Build(buf); err != nil {
@@ -43,6 +46,7 @@ func buildWhere(buf Buffer, where []Statement) (err error) {
 	return nil
 }
 
+// InterfaceSlice converts any slice to a []interface{}
 func InterfaceSlice(slice interface{}) []interface{} {
 	s := reflect.ValueOf(slice)
 	if s.Kind() != reflect.Slice {
@@ -105,11 +109,11 @@ func (s *with) Build(buf Buffer) (err error) {
 		w = "WITH RECURSIVE "
 	}
 
-	buf.WriteString(w + s.alias + " AS (")
+	_, _ = buf.WriteString(w + s.alias + " AS (")
 	if err = s.stmt.Build(buf); err != nil {
 		return err
 	}
-	buf.WriteString(")")
+	_, _ = buf.WriteString(")")
 	return nil
 }
 
@@ -133,9 +137,9 @@ type union struct {
 func (s *union) Build(buf Buffer) (err error) {
 	switch s.all {
 	case false:
-		buf.WriteString("UNION ")
+		_, _ = buf.WriteString("UNION ")
 	case true:
-		buf.WriteString("UNION ALL ")
+		_, _ = buf.WriteString("UNION ALL ")
 	}
 
 	if err = s.stmt.Build(buf); err != nil {
