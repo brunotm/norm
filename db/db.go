@@ -49,6 +49,8 @@ func New(db *sql.DB, config Config) (d *DB, err error) {
 }
 
 // Tx creates a database transaction with the provided options.
+// The tid argument is the transaction identifier that will be used to log operations
+// done within the transaction.
 func (d *DB) Tx(ctx context.Context, tid string, opts *sql.TxOptions) (tx *Tx, err error) {
 	t, err := d.db.BeginTx(ctx, opts)
 	if err != nil {
@@ -70,11 +72,15 @@ func (d *DB) Tx(ctx context.Context, tid string, opts *sql.TxOptions) (tx *Tx, e
 }
 
 // Read creates a read-only transaction with the default DB isolation level.
+// The tid argument is the transaction identifier that will be used to log operations
+// done within the transaction.
 func (d *DB) Read(ctx context.Context, tid string) (tx *Tx, err error) {
 	return d.Tx(ctx, tid, d.readOpt)
 }
 
 // Update creates a read-write transaction with the default DB isolation level.
+// The tid argument is the transaction identifier that will be used to log operations
+// done within the transaction.
 func (d *DB) Update(ctx context.Context, tid string) (tx *Tx, err error) {
 	return d.Tx(ctx, tid, d.writeOpt)
 }
@@ -111,6 +117,16 @@ func (t *Tx) Exec(stmt statement.Statement) (r sql.Result, err error) {
 
 // Query executes a query that returns rows.
 func (t *Tx) Query(dst interface{}, stmt statement.Statement) (err error) {
+	return t.query(dst, stmt, false)
+}
+
+// QueryCache is like Query, but will add query results or return already cached
+// results from the transaction query cache.
+func (t *Tx) QueryCache(dst interface{}, stmt statement.Statement) (err error) {
+	return t.query(dst, stmt, true)
+}
+
+func (t *Tx) query(dst interface{}, stmt statement.Statement, cache bool) (err error) {
 	start := time.Now()
 	t.mu.Lock()
 	defer t.mu.Unlock()
@@ -125,13 +141,16 @@ func (t *Tx) Query(dst interface{}, stmt statement.Statement) (err error) {
 		return err
 	}
 
-	key := t.hash.Sum64()
-	t.hash.Reset()
+	var key uint64
+	if cache {
+		key = t.hash.Sum64()
+		t.hash.Reset()
 
-	if r, ok := t.cache[key]; ok {
-		reflect.ValueOf(dst).Elem().Set(r)
-		t.log("db.tx.query.cached", t.tid, nil, time.Since(start), query)
-		return nil
+		if r, ok := t.cache[key]; ok {
+			reflect.ValueOf(dst).Elem().Set(r)
+			t.log("db.tx.query.cached", t.tid, nil, time.Since(start), query)
+			return nil
+		}
 	}
 
 	r, err := t.tx.QueryContext(t.ctx, query)
@@ -143,10 +162,12 @@ func (t *Tx) Query(dst interface{}, stmt statement.Statement) (err error) {
 		return err
 	}
 
-	if err == nil {
-		t.log("db.tx.query.cache.add", t.tid, nil, time.Since(start), query)
-		t.cache[key] = reflect.ValueOf(dst).Elem()
-		return nil
+	if cache {
+		if err == nil {
+			t.log("db.tx.query.cache.add", t.tid, nil, time.Since(start), query)
+			t.cache[key] = reflect.ValueOf(dst).Elem()
+			return nil
+		}
 	}
 
 	t.log("db.tx.query", t.tid, err, time.Since(start), query)

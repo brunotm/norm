@@ -41,7 +41,7 @@ func writeValue(buf Buffer, arg interface{}, keyword bool) (err error) {
 	case fmt.Stringer:
 		_, _ = buf.WriteString(quoteString(arg.String()))
 	default:
-		return fmt.Errorf("invalid arg type: %T, value: %#v", arg, arg)
+		return fmt.Errorf("statement: invalid arg type: %T, value: %#v", arg, arg)
 	}
 
 	return nil

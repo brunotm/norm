@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	ErrInvalidType = fmt.Errorf("invalid type for scan")
+	ErrInvalidType = fmt.Errorf("statement: invalid type for scan")
 	typeValuer     = reflect.TypeOf((*driver.Valuer)(nil)).Elem()
 	structMapCache = sync.Map{} // reflect.Type / map[string][]int
 )
@@ -166,7 +166,7 @@ func findExtractor(t reflect.Type) (pointersExtractor, error) {
 	switch t.Kind() {
 	case reflect.Map:
 		if !t.ConvertibleTo(typeKeyValueMap) {
-			return nil, fmt.Errorf("expected %v, got %v", typeKeyValueMap, t)
+			return nil, fmt.Errorf("statement: expected %v, got %v", typeKeyValueMap, t)
 		}
 		return mapExtractor, nil
 	case reflect.Ptr:
