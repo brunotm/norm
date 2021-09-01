@@ -47,6 +47,13 @@ var (
 				Values(123, "john.doe", "john.doe@email.com", "admin").With("", Select().Columns("id").From("roles")),
 			wantErr: true,
 		},
+		{
+			name: "comment",
+			expect: `-- request id: 12435
+INSERT INTO users(id,user,email,role) VALUES (123,'john.doe','john.doe@email.com','admin') RETURNING id`,
+			stmt:    Insert().Comment("request id: ?", 12435).Into("users").Columns("id", "user", "email", "role").Values(123, "john.doe", "john.doe@email.com", "admin").Returning("id"),
+			wantErr: false,
+		},
 	}
 )
 

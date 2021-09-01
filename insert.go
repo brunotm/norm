@@ -13,6 +13,7 @@ type InsertStatement struct {
 	table        string
 	columns      []string
 	values       []Statement
+	comment      []Statement
 	valuesSelect *SelectStatement
 	with         Statement
 	onConflict   Statement
@@ -22,6 +23,16 @@ type InsertStatement struct {
 // Insert creates a new `INSERT` statement.
 func Insert() (s *InsertStatement) {
 	return &InsertStatement{}
+}
+
+// Comment adds a SQL comment to the generated query.
+// Each call to comment creates a new `-- <comment>` line.
+func (s *InsertStatement) Comment(c string, values ...interface{}) *InsertStatement {
+	p := &part{}
+	p.query = "-- " + c
+	p.values = values
+	s.comment = append(s.comment, p)
+	return s
 }
 
 func (s *InsertStatement) Into(table string) (st *InsertStatement) {
@@ -132,6 +143,13 @@ func (s *InsertStatement) Returning(columns ...string) *InsertStatement {
 
 // Build builds the statement into the given buffer.
 func (s *InsertStatement) Build(buf Buffer) (err error) {
+	for x := 0; x < len(s.comment); x++ {
+		if err = s.comment[x].Build(buf); err != nil {
+			return err
+		}
+		buf.WriteString("\n")
+	}
+
 	if s.with != nil {
 		if err = s.with.Build(buf); err != nil {
 			return err

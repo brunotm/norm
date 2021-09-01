@@ -63,6 +63,17 @@ var (
 				From("included_parts").GroupBy("sub_part"),
 			wantErr: false,
 		},
+		{
+			name: "comment",
+			expect: `-- request id: 12435
+WITH select_offices AS (SELECT country,city,address,postal_code FROM offices WHERE country IN ('uk','es','pt','fr')) SELECT * FROM users INNER JOIN select_offices ON users.city = select_offices.city WHERE email = 'john.doe@email.com' AND role IN ('admin','owner')`,
+			stmt: Select().Comment("request id: ?", 12435).With("select_offices",
+				Select().Columns("country", "city", "address", "postal_code").From("offices").WhereIn("country", "uk", "es", "pt", "fr")).
+				Columns("*").From("users").JoinInner("select_offices", "users.city = select_offices.city").
+				Where("email = ?", "john.doe@email.com").
+				WhereIn("role", "admin", "owner"),
+			wantErr: false,
+		},
 	}
 )
 

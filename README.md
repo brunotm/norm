@@ -6,13 +6,14 @@
 [![Apache 2 licensed](https://img.shields.io/badge/license-Apache2-blue.svg)](https://raw.githubusercontent.com/brunotm/statement/master/LICENSE)
 
 This package provides a simple SQL query builder for Go which aims for simplicity, performance
-and to stand out of the way when working with SQL code in Go.
+and to be out of the way when working with SQL code in Go.
 
-**It is not an ORM or a magic DSL that hides the SQL code and logic.**
+**It is not and will not be a magic ORM or DSL that hides the SQL code and logic.**
 
 ## Currently supported
 
 	* Select
+    	* Comment
     	* Columns
     	* From (table or statement.SelectStatement)
     	* Join
@@ -31,6 +32,7 @@ and to stand out of the way when working with SQL code in Go.
     	* Union (statement.SelectStatement)
     	* UnionAll (statement.SelectStatement)
 	* Insert
+    	* Comment
     	* Into
     	* With (statement.SelectStatement)
     	* Returning
@@ -38,6 +40,7 @@ and to stand out of the way when working with SQL code in Go.
     	* ValuesSelect (statement.SelectStatement)
     	* OnConflictUpdate
 	* Update
+    	* Comment
     	* Table
     	* Set
     	* SetMap
@@ -46,15 +49,20 @@ and to stand out of the way when working with SQL code in Go.
     	* WhereIn
     	* Returning
 	* Delete
+    	* Comment
     	* From
     	* With (statement.SelectStatement)
     	* Where
     	* WhereIn
     	* Returning
 	* Create
+    	* Comment
 	* Alter
+    	* Comment
 	* Truncate
+    	* Comment
 	* Drop
+    	* **Comment**
 
 ## TODO
 	* Record iterator

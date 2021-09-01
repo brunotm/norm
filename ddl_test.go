@@ -33,6 +33,13 @@ var (
 			stmt:    Truncate("TABLE ? CASCADE", "users"),
 			wantErr: false,
 		},
+		{
+			name: "comment",
+			expect: `-- request id: 12435
+TRUNCATE TABLE users CASCADE`,
+			stmt:    Truncate("TABLE ? CASCADE", "users").Comment("request id: ?", 12435),
+			wantErr: false,
+		},
 	}
 )
 

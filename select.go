@@ -29,6 +29,7 @@ type SelectStatement struct {
 	columns        []string
 	groupBy        []string
 	orderBy        []string
+	comment        []Statement
 	join           []Statement
 	where          []Statement
 	having         []Statement
@@ -37,6 +38,16 @@ type SelectStatement struct {
 // Select creates a new `SELECT` statement.
 func Select() *SelectStatement {
 	return &SelectStatement{}
+}
+
+// Comment adds a SQL comment to the generated query.
+// Each call to comment creates a new `-- <comment>` line.
+func (s *SelectStatement) Comment(c string, values ...interface{}) *SelectStatement {
+	p := &part{}
+	p.query = "-- " + c
+	p.values = values
+	s.comment = append(s.comment, p)
+	return s
 }
 
 // Columns set the `SELECT` columns.
@@ -182,6 +193,13 @@ func (s *SelectStatement) UnionAll(stmt Statement) *SelectStatement {
 
 // Build builds the statement into the given buffer.
 func (s *SelectStatement) Build(buf Buffer) (err error) {
+	for x := 0; x < len(s.comment); x++ {
+		if err = s.comment[x].Build(buf); err != nil {
+			return err
+		}
+		buf.WriteString("\n")
+	}
+
 	if s.with != nil {
 		if err = s.with.Build(buf); err != nil {
 			return err

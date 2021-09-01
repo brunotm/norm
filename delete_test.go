@@ -41,6 +41,13 @@ var (
 			stmt:    Delete().From("users").Where("email = ?").Where("role = ?", "admin").Returning("id"),
 			wantErr: true,
 		},
+		{
+			name: "comment",
+			expect: `-- request id: 12435
+DELETE FROM users WHERE email = 'john.doe@email.com' AND role = 'admin' RETURNING id`,
+			stmt:    Delete().Comment("request id: ?", 12435).From("users").Where("email = ?", "john.doe@email.com").Where("role = ?", "admin").Returning("id"),
+			wantErr: false,
+		},
 	}
 )
 

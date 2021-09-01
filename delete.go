@@ -8,6 +8,7 @@ import (
 type DeleteStatement struct {
 	table     string
 	with      Statement
+	comment   []Statement
 	where     []Statement
 	returning []string
 }
@@ -15,6 +16,16 @@ type DeleteStatement struct {
 // Delete creates a new `DELETE` statement.
 func Delete() (s *DeleteStatement) {
 	return &DeleteStatement{}
+}
+
+// Comment adds a SQL comment to the generated query.
+// Each call to comment creates a new `-- <comment>` line.
+func (s *DeleteStatement) Comment(c string, values ...interface{}) *DeleteStatement {
+	p := &part{}
+	p.query = "-- " + c
+	p.values = values
+	s.comment = append(s.comment, p)
+	return s
 }
 
 // From sets the table name or for the `FROM` clause.
@@ -49,6 +60,13 @@ func (s *DeleteStatement) Returning(columns ...string) *DeleteStatement {
 
 // Build builds the statement into the given buffer.
 func (s *DeleteStatement) Build(buf Buffer) (err error) {
+	for x := 0; x < len(s.comment); x++ {
+		if err = s.comment[x].Build(buf); err != nil {
+			return err
+		}
+		buf.WriteString("\n")
+	}
+
 	if s.with != nil {
 		if err = s.with.Build(buf); err != nil {
 			return err

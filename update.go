@@ -11,12 +11,23 @@ type UpdateStatement struct {
 	with      Statement
 	values    map[string]interface{}
 	where     []Statement
+	comment   []Statement
 	returning []string
 }
 
 // Update creates a new update statement
 func Update() (s *UpdateStatement) {
 	return &UpdateStatement{values: make(map[string]interface{})}
+}
+
+// Comment adds a SQL comment to the generated query.
+// Each call to comment creates a new `-- <comment>` line.
+func (s *UpdateStatement) Comment(c string, values ...interface{}) *UpdateStatement {
+	p := &part{}
+	p.query = "-- " + c
+	p.values = values
+	s.comment = append(s.comment, p)
+	return s
 }
 
 func (s *UpdateStatement) Table(table string) *UpdateStatement {
@@ -65,6 +76,13 @@ func (s *UpdateStatement) Returning(columns ...string) *UpdateStatement {
 
 // Build builds the statement into the given buffer.
 func (s *UpdateStatement) Build(buf Buffer) (err error) {
+	for x := 0; x < len(s.comment); x++ {
+		if err = s.comment[x].Build(buf); err != nil {
+			return err
+		}
+		buf.WriteString("\n")
+	}
+
 	if s.with != nil {
 		if err = s.with.Build(buf); err != nil {
 			return err

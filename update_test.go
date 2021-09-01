@@ -61,6 +61,18 @@ var (
 			}).WhereIn("id", 123, 321).Returning("email"),
 			wantErr: false,
 		},
+		{
+			name: "comment",
+			expect: `-- request id: 12435
+-- context: 'UpdateUser'
+UPDATE users SET email = 'john.doe@email.com', role = 'admin', user = 'john.doe' WHERE id IN (123,321) RETURNING email`,
+			stmt: Update().Comment("request id: ?", 12435).Comment("context: ?", "UpdateUser").Table("users").SetMap(map[string]interface{}{
+				"user":  "john.doe",
+				"email": "john.doe@email.com",
+				"role":  "admin",
+			}).WhereIn("id", 123, 321).Returning("email"),
+			wantErr: false,
+		},
 	}
 )
 
