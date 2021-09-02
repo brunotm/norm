@@ -53,7 +53,7 @@ func Load(rows *sql.Rows, value interface{}) (int, error) {
 		elemType = v.Type()
 	}
 
-	extractor, err := findExtractor(elemType)
+	extractor, err := FindExtractor(elemType)
 	if err != nil {
 		return count, err
 	}
@@ -62,7 +62,7 @@ func Load(rows *sql.Rows, value interface{}) (int, error) {
 		var elem reflect.Value
 
 		if isSlice {
-			elem = reflect.New(v.Type().Elem()).Elem()
+			elem = reflect.New(elemType.Elem()).Elem()
 		} else {
 			elem = v
 		}
@@ -110,7 +110,8 @@ func (kv *kvScanner) Scan(v interface{}) error {
 	return nil
 }
 
-type pointersExtractor func(columns []string, value reflect.Value) []interface{}
+// PointersExtractor function type
+type PointersExtractor func(columns []string, value reflect.Value) []interface{}
 
 var (
 	dummyDest       sql.Scanner = dummyScanner{}
@@ -118,7 +119,7 @@ var (
 	typeKeyValueMap             = reflect.TypeOf(keyValueMap(nil))
 )
 
-func getStructFieldsExtractor(t reflect.Type) pointersExtractor {
+func getStructFieldsExtractor(t reflect.Type) PointersExtractor {
 	mapping := StructMap(t)
 	return func(columns []string, value reflect.Value) []interface{} {
 		var ptr []interface{}
@@ -133,7 +134,7 @@ func getStructFieldsExtractor(t reflect.Type) pointersExtractor {
 	}
 }
 
-func getIndirectExtractor(extractor pointersExtractor) pointersExtractor {
+func getIndirectExtractor(extractor PointersExtractor) PointersExtractor {
 	return func(columns []string, value reflect.Value) []interface{} {
 		if value.IsNil() {
 			value.Set(reflect.New(value.Type().Elem()))
@@ -158,7 +159,8 @@ func dummyExtractor(columns []string, value reflect.Value) []interface{} {
 	return []interface{}{value.Addr().Interface()}
 }
 
-func findExtractor(t reflect.Type) (pointersExtractor, error) {
+// FindExtractor returns a PointersExtractor for the given type
+func FindExtractor(t reflect.Type) (PointersExtractor, error) {
 	if reflect.PtrTo(t).Implements(typeScanner) {
 		return dummyExtractor, nil
 	}
@@ -170,7 +172,7 @@ func findExtractor(t reflect.Type) (pointersExtractor, error) {
 		}
 		return mapExtractor, nil
 	case reflect.Ptr:
-		inner, err := findExtractor(t.Elem())
+		inner, err := FindExtractor(t.Elem())
 		if err != nil {
 			return nil, err
 		}
@@ -178,6 +180,7 @@ func findExtractor(t reflect.Type) (pointersExtractor, error) {
 	case reflect.Struct:
 		return getStructFieldsExtractor(t), nil
 	}
+
 	return dummyExtractor, nil
 }
 
