@@ -55,17 +55,15 @@ and to be out of the way when working with SQL code in Go.
     	* Where
     	* WhereIn
     	* Returning
-	* Create
+	* DDL
     	* Comment
-	* Alter
-    	* Comment
-	* Truncate
-    	* Comment
-	* Drop
-    	* **Comment**
+    	* Create
+    	* Alter
+    	* Truncate
+    	* Drop
 
 ## TODO
-	* Record iterator
+	* better statement/db tests
 
 ## Statement builder Usage (with database/sql)
 
