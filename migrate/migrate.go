@@ -83,11 +83,6 @@ func NewWithFiles(db *sql.DB, files fs.FS, logger Logger) (m *Migrate, err error
 			return nil
 		}
 
-		// skip nested files within the provided fs.Fs
-		if path != d.Name() {
-			return nil
-		}
-
 		match := migrationRegexp.FindStringSubmatch(d.Name())
 		if len(match) != 4 {
 			logger("migrate: could not match file in provided versions: %s, data: %#v", d.Name(), match)
@@ -110,7 +105,7 @@ func NewWithFiles(db *sql.DB, files fs.FS, logger Logger) (m *Migrate, err error
 		}
 		logger("migrate: adding entry for: %s, file: %s", match[2], d.Name())
 
-		source, err := fs.ReadFile(files, d.Name())
+		source, err := fs.ReadFile(files, path)
 		if err != nil {
 			return fmt.Errorf("migrate: error reading file: %s version: %w", d.Name(), err)
 		}

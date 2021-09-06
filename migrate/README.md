@@ -1,6 +1,6 @@
 # norm/migrate
 
-The migration files in the provided `fs.FS` must be on its root (no directory nesting) and use the `(\d+)_(\w+)\.(apply|discard)\.sql` naming pattern.
+The migration files in the provided `fs.FS` must match `(\d+)_(\w+)\.(apply|discard)\.sql` naming pattern.
 
 Example:
 ```sh
