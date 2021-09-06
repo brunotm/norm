@@ -1,6 +1,6 @@
 # norm (NoORM)
 
-![Build Status](https://github.com/brunotm/norm/actions/workflows/test.yml/badge.svg)
+[![Build Status](https://github.com/brunotm/norm/actions/workflows/test.yml/badge.svg)](https://github.com/brunotm/norm/actions)
 [![Go Report Card](https://goreportcard.com/badge/brunotm/norm?cache=0)](https://goreportcard.com/report/brunotm/norm)
 [![go.dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/github.com/brunotm/norm)
 [![Apache 2 licensed](https://img.shields.io/badge/license-Apache2-blue.svg)](https://raw.githubusercontent.com/brunotm/norm/master/LICENSE)
