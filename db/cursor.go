@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/brunotm/statement"
-	"github.com/brunotm/statement/scan"
+	"github.com/brunotm/norm/internal/scan"
+	"github.com/brunotm/norm/statement"
 )
 
 // Cursor is a cursor to a database result set.

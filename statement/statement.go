@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/brunotm/statement/scan"
+	"github.com/brunotm/norm/internal/scan"
 )
 
 var (
@@ -142,11 +142,7 @@ func (s *union) Build(buf Buffer) (err error) {
 		_, _ = buf.WriteString("UNION ALL ")
 	}
 
-	if err = s.stmt.Build(buf); err != nil {
-		return err
-	}
-
-	return nil
+	return s.stmt.Build(buf)
 }
 
 // String builds the statement and returns the resulting query string.

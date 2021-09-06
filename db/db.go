@@ -3,22 +3,33 @@ package db
 import (
 	"context"
 	"database/sql"
+	"log"
 	"reflect"
 	"strconv"
 	"time"
 )
 
-type Logger func(message, id string, err error, d time.Duration, query string)
+// Logger type for database operations
+type Logger func(id, message string, err error, d time.Duration, query string)
 
-func noopLogger(message, id string, err error, d time.Duration, query string) {}
+// DefaultLogger for database operations
+func DefaultLogger(id, message string, err error, d time.Duration, query string) {
+	log.Printf("id: %s, message: %s, error: %s, duration_millis: %d, query: %s",
+		id, message, err, d.Milliseconds(), query)
+}
 
+func nopLogger(message, id string, err error, d time.Duration, query string) {}
+
+// Config specifies the default database transaction isolation levels and logger.
+// If the logger is nil a no operation logger will be used.
 type Config struct {
 	Log      Logger
 	ReadOpt  sql.IsolationLevel
 	WriteOpt sql.IsolationLevel
 }
 
-// DB is a wrapped *sql.DB
+// DB is safe sql.DB wrapper which enforces transactional access to the database,
+// transaction query caching and operation logging and plays nicely with `noorm/statement`.
 type DB struct {
 	db       *sql.DB
 	log      Logger
@@ -30,8 +41,8 @@ type DB struct {
 func New(db *sql.DB, config Config) (d *DB, err error) {
 	d = &DB{}
 	d.db = db
+	d.log = nopLogger
 
-	d.log = noopLogger
 	if config.Log != nil {
 		d.log = config.Log
 	}

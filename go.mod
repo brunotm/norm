@@ -1,3 +1,3 @@
-module github.com/brunotm/statement
+module github.com/brunotm/norm
 
 go 1.16

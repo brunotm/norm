@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/brunotm/statement/scan"
+	"github.com/brunotm/norm/internal/scan"
 )
 
 // InsertStatement statement.

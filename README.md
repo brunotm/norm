@@ -1,170 +1,112 @@
-# statement is a simple SQL query builder for Go
+# norm (NoORM)
 
-![Build Status](https://github.com/brunotm/statement/actions/workflows/test.yml/badge.svg)
-[![Go Report Card](https://goreportcard.com/badge/brunotm/statement?cache=0)](https://goreportcard.com/report/brunotm/statement)
-[![go.dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/github.com/brunotm/statement)
-[![Apache 2 licensed](https://img.shields.io/badge/license-Apache2-blue.svg)](https://raw.githubusercontent.com/brunotm/statement/master/LICENSE)
+![Build Status](https://github.com/brunotm/norm/actions/workflows/test.yml/badge.svg)
+[![Go Report Card](https://goreportcard.com/badge/brunotm/norm?cache=0)](https://goreportcard.com/report/brunotm/norm)
+[![go.dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/github.com/brunotm/norm)
+[![Apache 2 licensed](https://img.shields.io/badge/license-Apache2-blue.svg)](https://raw.githubusercontent.com/brunotm/norm/master/LICENSE)
 
-This package provides a simple SQL query builder for Go which aims for simplicity, performance
-and to be out of the way when working with SQL code in Go.
 
-**It is not and will not be a magic ORM or DSL that hides the SQL code and logic.**
+This repository provides a **no frills, no bloat and no magic** collection of utilities for working with SQL code and databases
+in Go. It **relies solely on standard library packages** and focuses on simplicity, stability and performance.
 
-## Currently supported
+# Packages
+
+## [norm/statement](statement/README.md)
+
+A simple and performant SQL query builder for Go which doesn't hide or obscures SQL code and
+logic but rather makes them explicit and a fundamental part of the application code.
+
+It handles the all parameter interpolation at the package level using the `?` placeholder, so
+queries are mostly portable across databases.
+
+### Features
 
 	* Select
-    	* Comment
-    	* Columns
-    	* From (table or statement.SelectStatement)
-    	* Join
-    	* Where
-    	* WhereIn
-    	* With (statement.SelectStatement)
-    	* WithRecursive (statement.SelectStatement)
-    	* Having
-    	* GroupBy
-    	* Order
-    	* Limit
-    	* Offset
-    	* Distinct
-    	* ForUpdate
-    	* SkipLocked
-    	* Union (statement.SelectStatement)
-    	* UnionAll (statement.SelectStatement)
+		* Comment
+		* Columns
+		* From (table or statement.SelectStatement)
+		* Join
+		* Where
+		* WhereIn
+		* With (statement.SelectStatement)
+		* WithRecursive (statement.SelectStatement)
+		* Having
+		* GroupBy
+		* Order
+		* Limit
+		* Offset
+		* Distinct
+		* ForUpdate
+		* SkipLocked
+		* Union (statement.SelectStatement)
+		* UnionAll (statement.SelectStatement)
 	* Insert
-    	* Comment
-    	* Into
-    	* With (statement.SelectStatement)
-    	* Returning
-    	* Record (from struct)
-    	* ValuesSelect (statement.SelectStatement)
-    	* OnConflictUpdate
+		* Comment
+		* Into
+		* With (statement.SelectStatement)
+		* Returning
+		* Record (from struct)
+		* ValuesSelect (statement.SelectStatement)
+		* OnConflictUpdate
 	* Update
-    	* Comment
-    	* Table
-    	* Set
-    	* SetMap
-    	* With (statement.SelectStatement)
-    	* Where
-    	* WhereIn
-    	* Returning
+		* Comment
+		* Table
+		* Set
+		* SetMap
+		* With (statement.SelectStatement)
+		* Where
+		* WhereIn
+		* Returning
 	* Delete
-    	* Comment
-    	* From
-    	* With (statement.SelectStatement)
-    	* Where
-    	* WhereIn
-    	* Returning
+		* Comment
+		* From
+		* With (statement.SelectStatement)
+		* Where
+		* WhereIn
+		* Returning
 	* DDL
-    	* Comment
-    	* Create
-    	* Alter
-    	* Truncate
-    	* Drop
+		* Comment
+		* Create
+		* Alter
+		* Truncate
+		* Drop
 
-## TODO
-	* better statement/db tests
 
-## Statement builder Usage (with database/sql)
+## [norm/db](db/README.md)
 
-```go
-	type Part struct {
-		ID string
-		Name string
-	}
+A safe sql.DB wrapper which enforces transactional access to the database, transaction query caching and operation logging and plays nicely with `norm/statement`.
 
-	part := Part{
-		Name: "part01"
-	}
+### Features
 
-	query, err := statement.Select().WithRecursive(
-		"included_parts",
-		Select().Columns("sub_part", "part", "quantity").
-			From("parts").Where("part = ?", part.Name).
-			UnionAll(
-				Select().Columns("p.sub_part", "p.part", "p.quantity").
-					From("included_parts AS pr").
-					JoinInner("parts AS p", "p.part = pr.sub_part"),
-			),
-	).Columns("sub_part", "SUM(quantity) as total_quantity").
-		From("included_parts").GroupBy("sub_part").String()
+	* Contextual operation logging
+	* Transactional access with default isolation level
+	* Cursor for traversing large result sets
+	* Row scanning into structs or []struct
+	* Transaction scoped query caching
+	* Transaction ids for request tracing
 
-	if err != nil {
-		// handle error
-	}
+## [norm/migrate](migrate/README.md)
 
-	rows, err := tx.Query(query)
-	// handle rows.....
-```
+A simple database migration package which does the necessary, not less, not more.
 
-## statement/db
+### Features
 
-The statement/db package provides a thin wrapper around a `sql.DB` which enforces transactional
-access to the database with configurable isolation levels, transaction scoped query cache and scanning `sql.Rows` into structs and query logging.
+	* Migration sequence management
+	* Migrate Up/Down/Apply(<version>)
+	* Apply/discard migrations
+	* Transactional apply/discard migrations
 
-```go
-	conf := db.Config{
-		Log: func(message, id string, err error, d time.Duration, query string) {
-			log.Println(
-				"message:", message,
-				", id:", id,
-				", error:", err,
-				", duration_millis:" d.Milliseconds(),
-				", query": query)
-		},
-		ReadOpt:  sql.LevelSerializable,
-		WriteOpt: sql.LevelSerializable,
-	}
+## Motivation
 
-	d, err := db.New(sdb, conf)
-	if err != nil {
-    	// handle err
-	}
+I like simple, efficient and clean code. There is too much ORM stuff floating around these days.
 
-	type Part struct {
-    	ID string
-    	Name string
-    	TotalQuantity int64
-	}
-
-	part := Part{
-	Name: "part01"
-	}
-
-	stmt := statement.Select().WithRecursive(
-	"included_parts",
-	Select().Columns("sub_part", "part", "quantity").
-		From("parts").Where("part = ?", part.Name).
-		UnionAll(
-			Select().Columns("p.sub_part", "p.part", "p.quantity").
-				From("included_parts AS pr").
-				JoinInner("parts AS p", "p.part = pr.sub_part"),
-		),
-	).Columns("sub_part as name", "SUM(quantity) as total_quantity").
-	From("included_parts").GroupBy("name")
-
-	var parts []Part
-	err = tx.Query(&parts, stmt)
-	if err != nil {
-	// handle err
-	}
-
-	// do things with parts
-```
-
-## Install
-
-This package has no external dependencies and requires Go >= 1.16 and modules.
-
+### Install
 ```shell
-go get -u -v github.com/brunotm/statement
+go get -u -v github.com/brunotm/norm
 ```
 
 ## Test
 
 ```shell
-go test -v -cover .
+go test -v -cover ./...
 ```
-
-## Acknowledgements
-The statement package is inspired by the work done on [mailru/dbr](https://github.com/mailru/dbr)

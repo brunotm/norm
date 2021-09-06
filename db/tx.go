@@ -3,14 +3,13 @@ package db
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"hash/maphash"
 	"reflect"
 	"sync"
 	"time"
 
-	"github.com/brunotm/statement"
-	"github.com/brunotm/statement/scan"
+	"github.com/brunotm/norm/internal/scan"
+	"github.com/brunotm/norm/statement"
 )
 
 // Tx represents a database transaction
@@ -48,7 +47,7 @@ func (t *Tx) Query(dst interface{}, stmt statement.Statement) (err error) {
 	return t.query(dst, stmt, false)
 }
 
-// QueryCache is like Query, but will add query results or return already cached
+// QueryCache is like Query, but will add query results to or return already cached
 // results from the transaction query cache.
 func (t *Tx) QueryCache(dst interface{}, stmt statement.Statement) (err error) {
 	return t.query(dst, stmt, true)
@@ -56,14 +55,14 @@ func (t *Tx) QueryCache(dst interface{}, stmt statement.Statement) (err error) {
 
 func (t *Tx) query(dst interface{}, stmt statement.Statement, cache bool) (err error) {
 	start := time.Now()
-	t.mu.Lock()
-	defer t.mu.Unlock()
 
 	query, err := stmt.String()
 	if err != nil {
-		t.log("db.tx.query.build", t.tid, err, time.Since(start), fmt.Sprintf("%#v", stmt))
 		return err
 	}
+
+	t.mu.Lock()
+	defer t.mu.Unlock()
 
 	var key uint64
 	if cache {
@@ -76,7 +75,7 @@ func (t *Tx) query(dst interface{}, stmt statement.Statement, cache bool) (err e
 
 		if r, ok := t.cache[key]; ok {
 			reflect.ValueOf(dst).Elem().Set(r)
-			t.log("db.tx.query.cached", t.tid, nil, time.Since(start), query)
+			t.log("db.tx.query.cache.get", t.tid, nil, time.Since(start), query)
 			return nil
 		}
 	}
