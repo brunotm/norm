@@ -20,14 +20,6 @@ func DefaultLogger(id, message string, err error, d time.Duration, query string)
 
 func nopLogger(message, id string, err error, d time.Duration, query string) {}
 
-// Config specifies the default database transaction isolation levels and logger.
-// If the logger is nil a no operation logger will be used.
-type Config struct {
-	Log      Logger
-	ReadOpt  sql.IsolationLevel
-	WriteOpt sql.IsolationLevel
-}
-
 // DB is safe sql.DB wrapper which enforces transactional access to the database,
 // transaction query caching and operation logging and plays nicely with `noorm/statement`.
 type DB struct {
@@ -37,18 +29,19 @@ type DB struct {
 	writeOpt *sql.TxOptions
 }
 
-// New creates a new database from an existing *sql.DB.
-func New(db *sql.DB, config Config) (d *DB, err error) {
+// New creates a new database from an existing *sql.DB
+// with the given sql.IsolationLevel and logger.
+func New(db *sql.DB, level sql.IsolationLevel, logger Logger) (d *DB, err error) {
 	d = &DB{}
 	d.db = db
 	d.log = nopLogger
 
-	if config.Log != nil {
-		d.log = config.Log
+	if logger != nil {
+		d.log = logger
 	}
 
-	d.readOpt = &sql.TxOptions{Isolation: config.ReadOpt, ReadOnly: true}
-	d.writeOpt = &sql.TxOptions{Isolation: config.WriteOpt, ReadOnly: false}
+	d.readOpt = &sql.TxOptions{Isolation: level, ReadOnly: true}
+	d.writeOpt = &sql.TxOptions{Isolation: level, ReadOnly: false}
 
 	return d, nil
 }

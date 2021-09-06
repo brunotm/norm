@@ -3,13 +3,7 @@
 ## Example
 
 ```go
-	conf := db.Config{
-		Log: db.DefaultLogger,
-		ReadOpt:  sql.LevelSerializable,
-		WriteOpt: sql.LevelSerializable,
-	}
-
-	d, err := db.New(sdb, conf)
+	d, err := db.New(sdb, sql.LevelSerializable, db.DefaultLogger)
 	if err != nil {
     	// handle err
 	}
