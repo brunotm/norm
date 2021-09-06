@@ -73,7 +73,7 @@ func NewWithFiles(db *sql.DB, files fs.FS, logger Logger) (m *Migrate, err error
 
 	// walk the provided fs.FS matching found 1st level files matching with the migrationRegexp
 	// and adding them to the Migrate catalog
-	fs.WalkDir(files, ".", func(path string, d fs.DirEntry, err error) error {
+	err = fs.WalkDir(files, ".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -125,6 +125,10 @@ func NewWithFiles(db *sql.DB, files fs.FS, logger Logger) (m *Migrate, err error
 		return nil
 	})
 
+	if err != nil {
+		return nil, fmt.Errorf("migrate: %w", err)
+	}
+
 	return New(db, logger, migrations)
 }
 
@@ -135,9 +139,11 @@ func (m *Migrate) Version(ctx context.Context) (version *Version, err error) {
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback()
 
-	return m.version(ctx, tx)
+	version, err = m.version(ctx, tx)
+	_ = tx.Rollback()
+
+	return version, err
 }
 
 func (m *Migrate) version(ctx context.Context, tx *sql.Tx) (version *Version, err error) {
@@ -210,7 +216,6 @@ func (m *Migrate) Apply(ctx context.Context, version int64) (err error) {
 		}
 
 	case current.Version == version:
-		// return fmt.Errorf("migrate: already at version: %d", version)
 		return nil
 	}
 
@@ -230,7 +235,7 @@ func (m *Migrate) apply(ctx context.Context, mig *Migration, discard bool) (err 
 
 	// restart tx if migrations are not initialized
 	if current.Version == -1 {
-		tx.Rollback()
+		_ = tx.Rollback()
 		tx, err = m.db.BeginTx(ctx, options)
 		if err != nil {
 			return err
@@ -273,7 +278,7 @@ func (m *Migrate) apply(ctx context.Context, mig *Migration, discard bool) (err 
 			if stmt != "" {
 				stmt += " "
 			}
-			stmt += string(line[:len(line)-1])
+			stmt += line[:len(line)-1]
 
 			m.logger("migrate: %s, discard: %t, statement: %s", mig.Name, discard, stmt)
 			if _, err := tx.ExecContext(ctx, stmt); err != nil {
