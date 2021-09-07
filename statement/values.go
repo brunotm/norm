@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+var rfc3339micro = "'2006-01-02T15:04:05.999999Z07:00'"
+
 func writeValue(buf Buffer, arg interface{}, keyword bool) (err error) {
 	switch arg := arg.(type) {
 	case nil:
@@ -37,7 +39,7 @@ func writeValue(buf Buffer, arg interface{}, keyword bool) (err error) {
 			_, _ = buf.WriteString(quoteString(arg))
 		}
 	case time.Time:
-		_, _ = buf.WriteString(arg.Truncate(time.Microsecond).Format("'2006-01-02 15:04:05.999999999Z07:00:00'"))
+		_, _ = buf.WriteString(arg.Format(rfc3339micro))
 	case fmt.Stringer:
 		_, _ = buf.WriteString(quoteString(arg.String()))
 	default:
