@@ -62,7 +62,7 @@ func Load(rows *sql.Rows, value interface{}) (int, error) {
 		var elem reflect.Value
 
 		if isSlice {
-			elem = reflect.New(elemType.Elem()).Elem()
+			elem = reflect.New(elemType).Elem()
 		} else {
 			elem = v
 		}
