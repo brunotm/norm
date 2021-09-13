@@ -82,3 +82,9 @@ func (d *DB) Read(ctx context.Context, tid string) (tx *Tx, err error) {
 func (d *DB) Update(ctx context.Context, tid string) (tx *Tx, err error) {
 	return d.Tx(ctx, tid, d.writeOpt)
 }
+
+// PingContext verifies a connection to the database is still alive,
+// establishing a connection if necessary.
+func (d *DB) Ping(ctx context.Context) (err error) {
+	return d.db.PingContext(ctx)
+}
