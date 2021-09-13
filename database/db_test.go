@@ -40,7 +40,7 @@ func TestTxExecSimple(t *testing.T) {
 	}
 
 	if err = tx.Commit(); err != nil {
-		t.Fatalf("error commiting norm/database.DB transaction: %s", err)
+		t.Fatalf("error committing norm/database.DB transaction: %s", err)
 	}
 
 	if err = mock.ExpectationsWereMet(); err != nil {
@@ -87,7 +87,10 @@ func TestTxQuerySimple(t *testing.T) {
 	if err = tx.Query(&users, query); err != nil {
 		t.Fatalf("error performing norm/database.DB query: %s", err)
 	}
-	tx.Rollback()
+
+	if err = tx.Rollback(); err != nil {
+		t.Fatalf("error rolling back transaction: %s", err)
+	}
 
 	if len(users) > 3 {
 		t.Fatalf("expected 3 rows, got %d, data: %#v", len(users), users)
@@ -144,7 +147,9 @@ func TestTxQueryCache(t *testing.T) {
 		t.Fatalf("error performing norm/database.DB query: %s", err)
 	}
 
-	tx.Rollback()
+	if err = tx.Rollback(); err != nil {
+		t.Fatalf("error rolling back transaction: %s", err)
+	}
 
 	if len(users) > 3 {
 		t.Fatalf("expected 3 rows, got %d, data: %#v", len(users), users)
