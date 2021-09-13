@@ -88,3 +88,9 @@ func (d *DB) Update(ctx context.Context, tid string) (tx *Tx, err error) {
 func (d *DB) Ping(ctx context.Context) (err error) {
 	return d.db.PingContext(ctx)
 }
+
+// Close closes the database and prevents new queries from starting.
+// Close then waits for all queries that have started processing on the server to finish.
+func (d *DB) Close() (err error) {
+	return d.db.Close()
+}

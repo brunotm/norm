@@ -162,6 +162,7 @@ func TestTxQueryCache(t *testing.T) {
 }
 
 func TestDBPing(t *testing.T) {
+
 	mdb, mock, err := sqlmock.New(
 		sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual),
 		sqlmock.MonitorPingsOption(true),
@@ -179,6 +180,31 @@ func TestDBPing(t *testing.T) {
 	mock.ExpectPing()
 	if err = db.Ping(context.Background()); err != nil {
 		t.Fatalf("error pinging the database: %s", err)
+	}
+
+	if err = mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("mock expectations failed: %s", err)
+	}
+}
+
+func TestDBClose(t *testing.T) {
+	mdb, mock, err := sqlmock.New(
+		sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual),
+		sqlmock.MonitorPingsOption(true),
+	)
+	if err != nil {
+		t.Fatalf("error opening mock database: %s", err)
+	}
+	defer mdb.Close()
+
+	db, err := New(mdb, sql.LevelSerializable, nil)
+	if err != nil {
+		t.Fatalf("error opening norm/database.DB: %s", err)
+	}
+
+	mock.ExpectClose()
+	if err = db.Close(); err != nil {
+		t.Fatalf("error closing the database: %s", err)
 	}
 
 	if err = mock.ExpectationsWereMet(); err != nil {
