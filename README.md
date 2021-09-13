@@ -72,7 +72,7 @@ queries are mostly portable across databases.
 		* Drop
 
 
-## [norm/db](db/README.md)
+## [norm/database](database/README.md)
 
 A safe sql.DB wrapper which enforces transactional access to the database, transaction query caching and operation logging and plays nicely with `norm/statement`.
 

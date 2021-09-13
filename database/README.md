@@ -1,9 +1,9 @@
-# norm/db
+# norm/database
 
 ## Example
 
 ```go
-	d, err := db.New(sdb, sql.LevelSerializable, db.DefaultLogger)
+	db, err := database.New(sdb, sql.LevelSerializable, database.DefaultLogger)
 	if err != nil {
     	// handle err
 	}
@@ -18,7 +18,7 @@
 		Name: "part01"
 	}
 
-	tx, err := d.Read(ctx, id)
+	tx, err := db.Read(ctx, id)
 	if err != nil {
 		// handle err
 	}
