@@ -32,7 +32,7 @@ type Migrate struct {
 //
 // If the provided logger function is not `nil` additional information will be logged during the
 // migrations apply or discard.
-func New(db *sql.DB, logger Logger, migrations map[int64]*Migration) (m *Migrate, err error) {
+func New(db *sql.DB, logger Logger, migrations []*Migration) (m *Migrate, err error) {
 	if len(migrations) == 0 {
 		return nil, fmt.Errorf("migrate: no migrations where provided")
 	}
@@ -51,6 +51,11 @@ func New(db *sql.DB, logger Logger, migrations map[int64]*Migration) (m *Migrate
 		if mig.Version <= 0 {
 			return nil, fmt.Errorf("migrate: migration version must be greater than 0")
 		}
+
+		if _, ok := m.migrations[mig.Version]; ok {
+			return nil, fmt.Errorf("migrate: duplicate migration version: %d", mig.Version)
+		}
+
 		m.migrations[mig.Version] = mig
 		m.versions = append(m.versions, mig.Version)
 	}
@@ -66,10 +71,11 @@ func New(db *sql.DB, logger Logger, migrations map[int64]*Migration) (m *Migrate
 // Only files within the 1st level of the provided path matching the `(\d+)_(\w+)\.(apply|discard)\.sql`
 // pattern will be added to the Migrate catalog.
 func NewWithFiles(db *sql.DB, files fs.FS, logger Logger) (m *Migrate, err error) {
-	migrations := make(map[int64]*Migration)
 	if logger == nil {
 		logger = nopLogger
 	}
+
+	migrations := make(map[int64]*Migration)
 
 	// walk the provided fs.FS matching found 1st level files matching with the migrationRegexp
 	// and adding them to the Migrate catalog
@@ -124,7 +130,12 @@ func NewWithFiles(db *sql.DB, files fs.FS, logger Logger) (m *Migrate, err error
 		return nil, fmt.Errorf("migrate: %w", err)
 	}
 
-	return New(db, logger, migrations)
+	var arg []*Migration
+	for _, m := range migrations {
+		arg = append(arg, m)
+	}
+
+	return New(db, logger, arg)
 }
 
 // Version returns the current database migration version.
@@ -142,9 +153,7 @@ func (m *Migrate) Version(ctx context.Context) (version *Version, err error) {
 }
 
 func (m *Migrate) version(ctx context.Context, tx *sql.Tx) (version *Version, err error) {
-	row := tx.QueryRowContext(ctx, `
-		SELECT version, date, name FROM migrations ORDER BY date DESC LIMIT 1
-	`)
+	row := tx.QueryRowContext(ctx, versionQuery)
 
 	version = &Version{}
 	err = row.Scan(&version.Version, &version.Date, &version.Name)
@@ -310,10 +319,7 @@ func (m *Migrate) apply(ctx context.Context, mig *Migration, discard bool) (err 
 	return tx.Commit()
 }
 
-// 0001_initial_schema.apply.sql
-// 0001_initial_schema.discard.sql
-var migrationRegexp = regexp.MustCompile(`(\d+)_(\w+)\.(apply|discard)\.sql`)
-var options = &sql.TxOptions{Isolation: sql.LevelSerializable}
+func nopLogger(_ string, _ ...interface{}) {}
 
 type Migration struct {
 	Version int64
@@ -328,16 +334,23 @@ type Version struct {
 	Name    string
 }
 
-var migration0 = &Migration{
-	Version: 0,
-	Name:    "create_migrations_table",
-	Apply: `CREATE TABLE IF NOT EXISTS migrations (
+var (
+	// 0001_initial_schema.apply.sql
+	// 0001_initial_schema.discard.sql
+	migrationRegexp = regexp.MustCompile(`(\d+)_(\w+)\.(apply|discard)\.sql`)
+	options         = &sql.TxOptions{Isolation: sql.LevelSerializable}
+
+	versionQuery = "SELECT version, date, name FROM migrations ORDER BY date DESC LIMIT 1"
+
+	migration0 = &Migration{
+		Version: 0,
+		Name:    "create_migrations_table",
+		Apply: `CREATE TABLE IF NOT EXISTS migrations (
 		date timestamp NOT NULL,
 		version bigint NOT NULL,
 		name varchar(512) NOT NULL,
 		PRIMARY KEY (date,version)
 	)`,
-	Discard: `DROP TABLE IF EXISTS migrations CASCADE`,
-}
-
-func nopLogger(_ string, _ ...interface{}) {}
+		Discard: `DROP TABLE IF EXISTS migrations CASCADE`,
+	}
+)
