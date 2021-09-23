@@ -47,7 +47,7 @@ queries are mostly portable across databases.
 		* Returning
 		* Record (from struct)
 		* ValuesSelect (statement.SelectStatement)
-		* OnConflictUpdate
+		* OnConflict
 	* Update
 		* Comment
 		* Table

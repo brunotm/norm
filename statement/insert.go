@@ -105,28 +105,11 @@ func (s *InsertStatement) ValuesSelect(values *SelectStatement) (st *InsertState
 	return s
 }
 
-// OnConflictUpdate adds a `ON CONFLICT ON CONSTRAINT constraint DO UPDATE SET` clause.
-func (s *InsertStatement) OnConflictUpdate(constraint string, actions map[string]interface{}) (st *InsertStatement) {
+// OnConflict adds a `ON CONFLICT` clause.
+func (s *InsertStatement) OnConflict(q string, values ...interface{}) (st *InsertStatement) {
 	p := &part{}
-	p.query += `ON CONFLICT ON CONSTRAINT ` + constraint
-	p.query += ` DO UPDATE SET`
-
-	p.values = make([]interface{}, 0, len(actions))
-	sorted := make([]string, 0, len(actions))
-
-	for k := range actions {
-		sorted = append(sorted, k)
-	}
-	sort.Strings(sorted)
-
-	for x := 0; x < len(sorted); x++ {
-		if x > 0 {
-			p.query += `, ` + sorted[x] + ` = ?`
-		} else {
-			p.query += ` ` + sorted[x] + ` = ?`
-		}
-		p.values = append(p.values, actions[sorted[x]])
-	}
+	p.query += `ON CONFLICT ` + q
+	p.values = values
 
 	s.onConflict = p
 	return s

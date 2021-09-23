@@ -28,11 +28,7 @@ var (
 			name:   "on_conflict",
 			expect: `INSERT INTO users(id,user,email,role) VALUES (123,'john.doe','john.doe@email.com','admin') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET email = 'john.doe@email.com', role = 'admin', user = 'john.doe'`,
 			stmt: Insert().Into("users").Columns("id", "user", "email", "role").Values(123, "john.doe", "john.doe@email.com", "admin").
-				OnConflictUpdate("users_pkey", map[string]interface{}{
-					"user":  "john.doe",
-					"email": "john.doe@email.com",
-					"role":  "admin",
-				}),
+				OnConflict("ON CONSTRAINT users_pkey DO UPDATE SET email = ?, role = ?, user = ?", "john.doe@email.com", "admin", "john.doe"),
 			wantErr: false,
 		},
 		{
