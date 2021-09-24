@@ -21,9 +21,9 @@ func Delete() (s *DeleteStatement) {
 // Comment adds a SQL comment to the generated query.
 // Each call to comment creates a new `-- <comment>` line.
 func (s *DeleteStatement) Comment(c string, values ...interface{}) *DeleteStatement {
-	p := &part{}
-	p.query = "-- " + c
-	p.values = values
+	p := &Part{}
+	p.Query = "-- " + c
+	p.Values = values
 	s.comment = append(s.comment, p)
 	return s
 }
@@ -42,7 +42,7 @@ func (s *DeleteStatement) With(alias string, stmt Statement) *DeleteStatement {
 
 // Where adds a `WHERE` clause, multiple calls to Where are `ANDed` together.
 func (s *DeleteStatement) Where(q string, values ...interface{}) *DeleteStatement {
-	s.where = append(s.where, &part{query: q, values: values})
+	s.where = append(s.where, &Part{Query: q, Values: values})
 	return s
 }
 

@@ -5,15 +5,15 @@ import "strings"
 // DDL represents a data definition statement.
 type DDL struct {
 	comment []Statement
-	*part
+	*Part
 }
 
 // Comment adds a SQL comment to the generated query.
 // Each call to comment creates a new `-- <comment>` line.
 func (s *DDL) Comment(c string, values ...interface{}) *DDL {
-	p := &part{}
-	p.query = "-- " + c
-	p.values = values
+	p := &Part{}
+	p.Query = "-- " + c
+	p.Values = values
 	s.comment = append(s.comment, p)
 	return s
 }
@@ -21,9 +21,9 @@ func (s *DDL) Comment(c string, values ...interface{}) *DDL {
 // Create creates a new `CREATE` DDL statement.
 func Create(query string, values ...interface{}) *DDL {
 	return &DDL{
-		part: &part{
-			query:  "CREATE " + query,
-			values: values,
+		Part: &Part{
+			Query:  "CREATE " + query,
+			Values: values,
 		},
 	}
 }
@@ -31,9 +31,9 @@ func Create(query string, values ...interface{}) *DDL {
 // Alter creates a new `ALTER` DDL statement.
 func Alter(query string, values ...interface{}) *DDL {
 	return &DDL{
-		part: &part{
-			query:  "ALTER " + query,
-			values: values,
+		Part: &Part{
+			Query:  "ALTER " + query,
+			Values: values,
 		},
 	}
 }
@@ -41,9 +41,9 @@ func Alter(query string, values ...interface{}) *DDL {
 // Drop creates a new `DROP` DDL statement.
 func Drop(query string, values ...interface{}) *DDL {
 	return &DDL{
-		part: &part{
-			query:  "DROP " + query,
-			values: values,
+		Part: &Part{
+			Query:  "DROP " + query,
+			Values: values,
 		},
 	}
 }
@@ -51,9 +51,9 @@ func Drop(query string, values ...interface{}) *DDL {
 // Truncate creates a new `TRUNCATE` DDL statement.
 func Truncate(query string, values ...interface{}) *DDL {
 	return &DDL{
-		part: &part{
-			query:  "TRUNCATE " + query,
-			values: values,
+		Part: &Part{
+			Query:  "TRUNCATE " + query,
+			Values: values,
 		},
 	}
 }

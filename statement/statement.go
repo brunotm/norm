@@ -68,23 +68,23 @@ func InterfaceSlice(slice interface{}) []interface{} {
 }
 
 // buildWhereIn builds a `WHERE IN (values)` clause.
-func buildWhereIn(column string, values ...interface{}) (p *part) {
-	p = &part{}
+func buildWhereIn(column string, values ...interface{}) (p *Part) {
+	p = &Part{}
 
 	if len(values) == 1 && scan.IsSlice(values[0]) {
 		values = InterfaceSlice(values[0])
 	}
 
-	p.query = column + ` IN (`
+	p.Query = column + ` IN (`
 	for x := 0; x < len(values); x++ {
 		if x == 0 {
-			p.query += "?"
+			p.Query += "?"
 		} else {
-			p.query += ",?"
+			p.Query += ",?"
 		}
-		p.values = append(p.values, values[x])
+		p.Values = append(p.Values, values[x])
 	}
-	p.query += `)`
+	p.Query += `)`
 	return p
 }
 

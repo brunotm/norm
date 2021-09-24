@@ -5,12 +5,14 @@ import (
 	"strings"
 )
 
-type part struct {
-	query  string
-	values []interface{}
+// Part is a query fragment that satisfies the statement.Statement interface
+type Part struct {
+	Query  string
+	Values []interface{}
 }
 
-func (p *part) String() (q string, err error) {
+// String builds the part and returns the resulting query.
+func (p *Part) String() (q string, err error) {
 	var buf strings.Builder
 	if err = p.Build(&buf); err != nil {
 		return "", err
@@ -19,17 +21,18 @@ func (p *part) String() (q string, err error) {
 	return buf.String(), nil
 }
 
-func (p *part) Build(buf Buffer) (err error) {
+// Build builds the part into the given buffer.
+func (p *Part) Build(buf Buffer) (err error) {
 	return p.build(buf, false)
 }
 
-func (p *part) build(buf Buffer, keyword bool) (err error) {
-	if strings.Count(p.query, "?") != len(p.values) {
-		return fmt.Errorf("%w: %s, %#v", ErrInvalidArgNumber, p.query, p.values)
+func (p *Part) build(buf Buffer, keyword bool) (err error) {
+	if strings.Count(p.Query, "?") != len(p.Values) {
+		return fmt.Errorf("%w: %s, %#v", ErrInvalidArgNumber, p.Query, p.Values)
 	}
 
 	valueIdx := 0
-	query := p.query
+	query := p.Query
 	for {
 		idx := strings.Index(query, "?")
 		if idx == -1 {
@@ -40,7 +43,7 @@ func (p *part) build(buf Buffer, keyword bool) (err error) {
 		_, _ = buf.WriteString(query[:idx])
 		query = query[idx+1:]
 
-		arg := p.values[valueIdx]
+		arg := p.Values[valueIdx]
 		valueIdx++
 
 		switch arg := arg.(type) {

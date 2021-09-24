@@ -48,9 +48,9 @@ func Select() *SelectStatement {
 // Comment adds a SQL comment to the generated query.
 // Each call to comment creates a new `-- <comment>` line.
 func (s *SelectStatement) Comment(c string, values ...interface{}) *SelectStatement {
-	p := &part{}
-	p.query = "-- " + c
-	p.values = values
+	p := &Part{}
+	p.Query = "-- " + c
+	p.Values = values
 	s.comment = append(s.comment, p)
 	return s
 }
@@ -68,7 +68,7 @@ func (s *SelectStatement) From(table interface{}) *SelectStatement {
 		s.tableStatement = true
 		s.table = table
 	case string:
-		s.table = &part{query: table}
+		s.table = &Part{Query: table}
 	}
 
 	return s
@@ -76,9 +76,9 @@ func (s *SelectStatement) From(table interface{}) *SelectStatement {
 
 // Join adds a `JOIN ...` clause.
 func (s *SelectStatement) Join(join Join, table, cond string, values ...interface{}) *SelectStatement {
-	p := &part{}
-	p.values = values
-	p.query = string(join) + " " + table + " ON " + cond
+	p := &Part{}
+	p.Values = values
+	p.Query = string(join) + " " + table + " ON " + cond
 
 	s.join = append(s.join, p)
 	return s
@@ -106,13 +106,13 @@ func (s *SelectStatement) JoinFull(table, cond string, values ...interface{}) *S
 
 // Where adds a `WHERE` clause, multiple calls to Where are `ANDed` together.
 func (s *SelectStatement) Where(q string, values ...interface{}) *SelectStatement {
-	s.where = append(s.where, &part{query: q, values: values})
+	s.where = append(s.where, &Part{Query: q, Values: values})
 	return s
 }
 
 // Having adds a `HAVING` clause, multiple calls to Having are `ANDed` together.
 func (s *SelectStatement) Having(q string, values ...interface{}) *SelectStatement {
-	s.having = append(s.having, &part{query: q, values: values})
+	s.having = append(s.having, &Part{Query: q, Values: values})
 	return s
 }
 

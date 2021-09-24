@@ -28,9 +28,9 @@ func Insert() (s *InsertStatement) {
 // Comment adds a SQL comment to the generated query.
 // Each call to comment creates a new `-- <comment>` line.
 func (s *InsertStatement) Comment(c string, values ...interface{}) *InsertStatement {
-	p := &part{}
-	p.query = "-- " + c
-	p.values = values
+	p := &Part{}
+	p.Query = "-- " + c
+	p.Values = values
 	s.comment = append(s.comment, p)
 	return s
 }
@@ -49,17 +49,17 @@ func (s *InsertStatement) Columns(columns ...string) (st *InsertStatement) {
 
 // Values specifies the values for the `VALUES` clause.
 func (s *InsertStatement) Values(values ...interface{}) (st *InsertStatement) {
-	p := &part{}
-	p.query = `(`
+	p := &Part{}
+	p.Query = `(`
 	for x := 0; x < len(values); x++ {
 		if x == 0 {
-			p.query += "?"
+			p.Query += "?"
 		} else {
-			p.query += ",?"
+			p.Query += ",?"
 		}
-		p.values = append(p.values, values[x])
+		p.Values = append(p.Values, values[x])
 	}
-	p.query += `)`
+	p.Query += `)`
 
 	s.values = append(s.values, p)
 	return s
@@ -107,9 +107,9 @@ func (s *InsertStatement) ValuesSelect(values *SelectStatement) (st *InsertState
 
 // OnConflict adds a `ON CONFLICT` clause.
 func (s *InsertStatement) OnConflict(q string, values ...interface{}) (st *InsertStatement) {
-	p := &part{}
-	p.query += `ON CONFLICT ` + q
-	p.values = values
+	p := &Part{}
+	p.Query += `ON CONFLICT ` + q
+	p.Values = values
 
 	s.onConflict = p
 	return s

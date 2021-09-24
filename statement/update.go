@@ -23,9 +23,9 @@ func Update() (s *UpdateStatement) {
 // Comment adds a SQL comment to the generated query.
 // Each call to comment creates a new `-- <comment>` line.
 func (s *UpdateStatement) Comment(c string, values ...interface{}) *UpdateStatement {
-	p := &part{}
-	p.query = "-- " + c
-	p.values = values
+	p := &Part{}
+	p.Query = "-- " + c
+	p.Values = values
 	s.comment = append(s.comment, p)
 	return s
 }
@@ -59,7 +59,7 @@ func (s *UpdateStatement) With(alias string, stmt Statement) *UpdateStatement {
 
 // Where adds a `WHERE` clause, multiple calls to Where are `ANDed` together.
 func (s *UpdateStatement) Where(q string, values ...interface{}) *UpdateStatement {
-	s.where = append(s.where, &part{query: q, values: values})
+	s.where = append(s.where, &Part{Query: q, Values: values})
 	return s
 }
 
