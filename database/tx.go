@@ -42,14 +42,32 @@ func (t *Tx) Exec(stmt statement.Statement) (r sql.Result, err error) {
 	return r, err
 }
 
+// ExecSQL is like Exec but accepts a raw SQL statement and values for interpolation
+func (t *Tx) ExecSQL(query string, values ...interface{}) (r sql.Result, err error) {
+	stmt := &statement.Part{Query: query, Values: values}
+	return t.Exec(stmt)
+}
+
 // Query executes a query that returns rows.
 func (t *Tx) Query(dst interface{}, stmt statement.Statement) (err error) {
+	return t.query(dst, stmt, false)
+}
+
+// QuerySQL is like Query but accepts a raw SQL statement and values for interpolation
+func (t *Tx) QuerySQL(dst interface{}, query string, values ...interface{}) (err error) {
+	stmt := &statement.Part{Query: query, Values: values}
 	return t.query(dst, stmt, false)
 }
 
 // QueryCache is like Query, but will add query results to or return already cached
 // results from the transaction query cache.
 func (t *Tx) QueryCache(dst interface{}, stmt statement.Statement) (err error) {
+	return t.query(dst, stmt, true)
+}
+
+// QueryCacheSQL is like QueryCache but accepts a raw SQL statement and values for interpolation
+func (t *Tx) QueryCacheSQL(dst interface{}, query string, values ...interface{}) (err error) {
+	stmt := &statement.Part{Query: query, Values: values}
 	return t.query(dst, stmt, true)
 }
 
@@ -110,7 +128,7 @@ func (t *Tx) Commit() (err error) {
 	err = t.tx.Commit()
 	t.done = true
 
-	t.log("db.tx.commit", t.tid, err, time.Since(start), "")
+	t.log("db.tx.commit", t.tid, err, time.Since(start), "COMMIT")
 	return err
 }
 
@@ -127,6 +145,6 @@ func (t *Tx) Rollback() (err error) {
 	err = t.tx.Rollback()
 	t.done = true
 
-	t.log("db.tx.rollback", t.tid, err, time.Since(start), "")
+	t.log("db.tx.rollback", t.tid, err, time.Since(start), "ROLLBACK")
 	return err
 }
