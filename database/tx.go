@@ -32,7 +32,6 @@ func (t *Tx) Exec(stmt statement.Statement) (r sql.Result, err error) {
 
 	query, err := stmt.String()
 	if err != nil {
-		t.mu.Unlock()
 		return nil, err
 	}
 
