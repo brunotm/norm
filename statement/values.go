@@ -1,6 +1,7 @@
 package statement
 
 import (
+	"database/sql/driver"
 	"encoding/hex"
 	"fmt"
 	"strconv"
@@ -11,6 +12,12 @@ import (
 var rfc3339micro = "'2006-01-02T15:04:05.999999Z07:00'"
 
 func writeValue(buf Buffer, arg interface{}, keyword bool) (err error) {
+	if v, ok := arg.(driver.Valuer); ok {
+		if arg, err = v.Value(); err != nil {
+			return err
+		}
+	}
+
 	switch arg := arg.(type) {
 	case nil:
 		_, _ = buf.WriteString("null")
