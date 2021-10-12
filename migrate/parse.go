@@ -17,8 +17,13 @@ func parseStatement(data []byte) (s Statements, err error) {
 
 	var stmt string
 	scanner := bufio.NewScanner(bytes.NewReader(data))
+
 	for scanner.Scan() {
-		line := scanner.Text()
+		line := strings.TrimSpace(scanner.Text())
+
+		if len(line) == 0 {
+			continue
+		}
 
 		if strings.HasPrefix(line, "--") {
 			if noTXRegexp.MatchString(line) {
@@ -27,14 +32,22 @@ func parseStatement(data []byte) (s Statements, err error) {
 			continue
 		}
 
+		if stmt != "" {
+			stmt += " "
+		}
+
 		if line[len(line)-1] == ';' {
-			if stmt != "" {
-				stmt += " "
-			}
 			stmt += line[:len(line)-1]
 			s.Statements = append(s.Statements, stmt)
 			stmt = ""
+			continue
 		}
+
+		stmt += line
+	}
+
+	if stmt != "" {
+		s.Statements = append(s.Statements, stmt)
 	}
 
 	if s.NoTx && len(s.Statements) > 1 {
