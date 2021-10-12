@@ -30,12 +30,7 @@ var (
 		Apply: Statements{
 			NoTx: false,
 			Statements: []string{
-				`CREATE TABLE IF NOT EXISTS migrations (
-					date timestamp NOT NULL,
-					version bigint NOT NULL,
-					name varchar(512) NOT NULL,
-					PRIMARY KEY (date,version)
-				)`},
+				`CREATE TABLE IF NOT EXISTS migrations (date timestamp NOT NULL, version bigint NOT NULL, name varchar(512) NOT NULL, PRIMARY KEY (date,version))`},
 		},
 		Discard: Statements{
 			NoTx:       false,
@@ -323,6 +318,8 @@ func (m *Migrate) apply(ctx context.Context, mig *Migration, discard bool) (err 
 	}
 
 	for x := 0; x < len(statements.Statements); x++ {
+		m.logger("migrate: %s, discard: %t, transaction: %t, statement: %s", mig.Name, discard, !statements.NoTx, statements.Statements[x])
+
 		switch statements.NoTx {
 		case false:
 			if _, err := tx.ExecContext(ctx, statements.Statements[x]); err != nil {
