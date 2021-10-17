@@ -9,7 +9,8 @@ import (
 )
 
 var (
-	noTXRegexp = regexp.MustCompile(`--\s+migrate:\s+NoTransaction`)
+	ErrInvalidNoTx = fmt.Errorf("migrate: migrations that disable transactions must have only one statement")
+	noTXRegexp     = regexp.MustCompile(`--\s+migrate:\s+NoTransaction`)
 )
 
 func parseStatement(data []byte) (s Statements, err error) {
@@ -51,7 +52,7 @@ func parseStatement(data []byte) (s Statements, err error) {
 	}
 
 	if s.NoTx && len(s.Statements) > 1 {
-		return s, fmt.Errorf("migrate: migrations that disable transactions must have only one statement")
+		return s, ErrInvalidNoTx
 	}
 
 	return s, nil

@@ -16,6 +16,15 @@ func TestParseSimple(t *testing.T) {
 	}
 }
 
+func TestParseMultiNoTx(t *testing.T) {
+	notx := append([]byte(`-- migrate: NoTransaction`), statement...)
+	_, err := parseStatement(notx)
+
+	if err != ErrInvalidNoTx {
+		t.Fatalf("failed to parse statement: %s", err)
+	}
+}
+
 var statement = []byte(`
 CREATE TABLE IF NOT EXISTS users (
 	created_at timestamptz NOT NULL DEFAULT now(),
