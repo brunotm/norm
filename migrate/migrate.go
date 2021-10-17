@@ -1,7 +1,6 @@
 package migrate
 
 import (
-	"bufio"
 	"context"
 	"database/sql"
 	"fmt"
@@ -14,11 +13,42 @@ import (
 	"time"
 )
 
+var (
+	// StdLog is the log.Printf function from the standard library
+	StdLog = log.Printf
+
+	// 0001_initial_schema.apply.sql
+	// 0001_initial_schema.discard.sql
+	migrationRegexp = regexp.MustCompile(`(\d+)_(\w+)\.(apply|discard)\.sql`)
+	options         = &sql.TxOptions{Isolation: sql.LevelSerializable}
+
+	versionQuery = "SELECT version, date, name FROM migrations ORDER BY date DESC LIMIT 1"
+
+	migration0 = &Migration{
+		Version: 0,
+		Name:    "create_migrations_table",
+		Apply: Statements{
+			NoTx: false,
+			Statements: []string{
+				`CREATE TABLE IF NOT EXISTS migrations (date timestamp NOT NULL, version bigint NOT NULL, name varchar(512) NOT NULL, PRIMARY KEY (date,version))`},
+		},
+		Discard: Statements{
+			NoTx:       false,
+			Statements: []string{`DROP TABLE IF EXISTS migrations CASCADE`},
+		},
+	}
+)
+
+// Executor executes statements in a database
+type Executor interface {
+	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
+}
+
 // Logger function signature
 type Logger func(s string, args ...interface{})
 
-// StdLog is the log.Printf function from the standard library
-var StdLog = log.Printf
+// nopLogger does notting
+func nopLogger(_ string, _ ...interface{}) {}
 
 // Migrate manages database migrations
 type Migrate struct {
@@ -26,6 +56,27 @@ type Migrate struct {
 	versions   []int64
 	logger     func(s string, args ...interface{})
 	migrations map[int64]*Migration
+}
+
+// Migration represents a database migration apply and discard statements
+type Migration struct {
+	Version int64
+	Name    string
+	Apply   Statements
+	Discard Statements
+}
+
+// Statements are set of SQL statements that either apply or discard a migration
+type Statements struct {
+	NoTx       bool
+	Statements []string
+}
+
+// Version represents a migration version and its metadata
+type Version struct {
+	Version int64
+	Date    time.Time
+	Name    string
 }
 
 // New creates a new Migrate with the given database and versions.
@@ -118,12 +169,12 @@ func NewWithFiles(db *sql.DB, files fs.FS, logger Logger) (m *Migrate, err error
 
 		switch match[3] {
 		case "apply":
-			mig.Apply = string(source)
+			mig.Apply, err = parseStatement(source)
 		case "discard":
-			mig.Discard = string(source)
+			mig.Discard, err = parseStatement(source)
 		}
 
-		return nil
+		return err
 	})
 
 	if err != nil {
@@ -246,9 +297,7 @@ func (m *Migrate) apply(ctx context.Context, mig *Migration, discard bool) (err 
 		}
 	}
 
-	var stmt string
-	var raw string
-
+	var statements Statements
 	switch discard {
 	case false:
 		if mig.Version != current.Version+1 {
@@ -256,60 +305,40 @@ func (m *Migrate) apply(ctx context.Context, mig *Migration, discard bool) (err 
 				"migrate: wrong sequence number, current: %d, proposed: %d, discard: %t",
 				current.Version, mig.Version, discard)
 		}
-		raw = mig.Apply
+		statements = mig.Apply
+
 	case true:
 		if mig.Version != current.Version {
 			return fmt.Errorf(
 				"migrate: wrong sequence number, current: %d, proposed: %d, discard: %t",
 				current.Version, mig.Version, discard)
 		}
-		raw = mig.Discard
+		statements = mig.Discard
+
 	}
 
-	if raw == "" {
-		return nil
-	}
+	for x := 0; x < len(statements.Statements); x++ {
+		m.logger("migrate: %s, discard: %t, transaction: %t, statement: %s", mig.Name, discard, !statements.NoTx, statements.Statements[x])
 
-	scanner := bufio.NewScanner(strings.NewReader(raw))
-	for scanner.Scan() {
-		line := scanner.Text()
-
-		if strings.HasPrefix(line, "--") {
-			continue
-		}
-
-		if line[len(line)-1] == ';' {
-			if stmt != "" {
-				stmt += " "
-			}
-			stmt += line[:len(line)-1]
-
-			m.logger("migrate: %s, discard: %t, statement: %s", mig.Name, discard, stmt)
-			if _, err := tx.ExecContext(ctx, stmt); err != nil {
+		switch statements.NoTx {
+		case false:
+			if _, err := tx.ExecContext(ctx, statements.Statements[x]); err != nil {
 				return err
 			}
 
-			stmt = ""
-			continue
-		}
-
-		if stmt != "" {
-			stmt += " "
-		}
-		stmt += line
-	}
-
-	if stmt != "" {
-		m.logger("migrate: %s, discard: %t, statement: %s", mig.Name, discard, stmt)
-		if _, err := tx.ExecContext(ctx, stmt); err != nil {
-			return err
+		case true:
+			if _, err := m.db.ExecContext(ctx, statements.Statements[x]); err != nil {
+				return err
+			}
 		}
 	}
 
+	// set the current version after applying the migration
 	mig = m.migrations[mig.Version]
 	if discard {
 		mig = m.migrations[mig.Version-1]
 	}
+
 	if mig != nil {
 		if err = m.set(ctx, tx, mig); err != nil {
 			return err
@@ -318,39 +347,3 @@ func (m *Migrate) apply(ctx context.Context, mig *Migration, discard bool) (err 
 
 	return tx.Commit()
 }
-
-func nopLogger(_ string, _ ...interface{}) {}
-
-type Migration struct {
-	Version int64
-	Name    string
-	Apply   string
-	Discard string
-}
-
-type Version struct {
-	Version int64
-	Date    time.Time
-	Name    string
-}
-
-var (
-	// 0001_initial_schema.apply.sql
-	// 0001_initial_schema.discard.sql
-	migrationRegexp = regexp.MustCompile(`(\d+)_(\w+)\.(apply|discard)\.sql`)
-	options         = &sql.TxOptions{Isolation: sql.LevelSerializable}
-
-	versionQuery = "SELECT version, date, name FROM migrations ORDER BY date DESC LIMIT 1"
-
-	migration0 = &Migration{
-		Version: 0,
-		Name:    "create_migrations_table",
-		Apply: `CREATE TABLE IF NOT EXISTS migrations (
-		date timestamp NOT NULL,
-		version bigint NOT NULL,
-		name varchar(512) NOT NULL,
-		PRIMARY KEY (date,version)
-	)`,
-		Discard: `DROP TABLE IF EXISTS migrations CASCADE`,
-	}
-)
