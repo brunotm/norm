@@ -22,7 +22,7 @@ func parseStatement(data []byte) (s Statements, err error) {
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 
-		if len(line) == 0 {
+		if line == "" {
 			continue
 		}
 
