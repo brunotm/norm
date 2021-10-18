@@ -121,7 +121,7 @@ func New(db *sql.DB, logger Logger, migrations []*Migration) (m *Migrate, err er
 // NewWithFiles is like new but takes a fs.Fs as a source for migration files.
 // Only files within the 1st level of the provided path matching the `(\d+)_(\w+)\.(apply|discard)\.sql`
 // pattern will be added to the Migrate catalog.
-func NewWithFiles(db *sql.DB, files fs.FS, logger Logger) (m *Migrate, err error) {
+func NewWithFiles(db *sql.DB, logger Logger, files fs.FS) (m *Migrate, err error) {
 	if logger == nil {
 		logger = nopLogger
 	}
