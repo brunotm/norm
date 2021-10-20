@@ -53,9 +53,8 @@ func nopLogger(_ string, _ ...interface{}) {}
 // Migrate manages database migrations
 type Migrate struct {
 	db         *sql.DB
-	versions   []int64
 	logger     func(s string, args ...interface{})
-	migrations map[int64]*Migration
+	migrations []*Migration
 }
 
 // Migration represents a database migration apply and discard statements
@@ -89,9 +88,7 @@ func New(db *sql.DB, logger Logger, migrations []*Migration) (m *Migrate, err er
 	}
 	m = &Migrate{}
 	m.db = db
-	m.migrations = make(map[int64]*Migration)
-	m.migrations[0] = migration0
-	m.versions = append(m.versions, 0)
+	m.migrations = append(m.migrations, migration0)
 
 	if logger == nil {
 		logger = nopLogger
@@ -103,17 +100,19 @@ func New(db *sql.DB, logger Logger, migrations []*Migration) (m *Migrate, err er
 			return nil, fmt.Errorf("migrate: migration version must be greater than 0")
 		}
 
-		if _, ok := m.migrations[mig.Version]; ok {
-			return nil, fmt.Errorf("migrate: duplicate migration version: %d", mig.Version)
-		}
-
-		m.migrations[mig.Version] = mig
-		m.versions = append(m.versions, mig.Version)
+		m.migrations = append(m.migrations, mig)
 	}
 
-	sort.Slice(m.versions, func(i, j int) bool {
-		return m.versions[i] < m.versions[j]
+	sort.Slice(m.migrations, func(i, j int) bool {
+		return m.migrations[i].Version < m.migrations[j].Version
 	})
+
+	// ensure migrations are sequential
+	for x := 0; x < len(m.migrations); x++ {
+		if m.migrations[x].Version != int64(x) {
+			return nil, fmt.Errorf("migrate: migration versions must be sequential")
+		}
+	}
 
 	return m, nil
 }
@@ -189,6 +188,15 @@ func NewWithFiles(db *sql.DB, logger Logger, files fs.FS) (m *Migrate, err error
 	return New(db, logger, arg)
 }
 
+// Versions return the list of migration versions available to this migrate instance.
+func (m *Migrate) Versions() (versions []Version) {
+	for x := 0; x < len(m.migrations); x++ {
+		versions = append(versions, Version{Version: m.migrations[x].Version, Name: m.migrations[x].Name})
+	}
+
+	return versions
+}
+
 // Version returns the current database migration version.
 // If the database migrations are not initialized version is -1.
 func (m *Migrate) Version(ctx context.Context) (version *Version, err error) {
@@ -221,7 +229,7 @@ func (m *Migrate) version(ctx context.Context, tx *sql.Tx) (version *Version, er
 
 // Up apply all existing migrations to the database
 func (m *Migrate) Up(ctx context.Context) (err error) {
-	return m.Apply(ctx, m.versions[len(m.versions)-1])
+	return m.Apply(ctx, m.migrations[len(m.migrations)-1].Version)
 }
 
 // Down discards all existing database migrations and migration history
@@ -241,7 +249,7 @@ func (m *Migrate) set(ctx context.Context, tx *sql.Tx, mig *Migration) (err erro
 
 // Apply either rolls forward or backwards the migrations to the specified version
 func (m *Migrate) Apply(ctx context.Context, version int64) (err error) {
-	if _, ok := m.migrations[version]; !ok && version != -1 {
+	if len(m.migrations) < int(version) && version != -1 {
 		return fmt.Errorf("migrate: specified version: %d does not exist", version)
 	}
 
@@ -250,22 +258,22 @@ func (m *Migrate) Apply(ctx context.Context, version int64) (err error) {
 		return err
 	}
 
-	var versions []int64
+	var migrations []*Migration
 	switch {
 	case current.Version < version:
-		versions = m.versions[current.Version+1 : version+1]
+		migrations = m.migrations[current.Version+1 : version+1]
 
-		for _, mig := range versions {
+		for mig := range migrations {
 			if err := m.apply(ctx, m.migrations[mig], false); err != nil {
 				return err
 			}
 		}
 
 	case current.Version > version:
-		versions = m.versions[version+1 : current.Version+1]
+		migrations = m.migrations[version+1 : current.Version+1]
 
-		for x := len(versions) - 1; x >= 0; x-- {
-			if err := m.apply(ctx, m.migrations[versions[x]], true); err != nil {
+		for x := len(migrations) - 1; x >= 0; x-- {
+			if err := m.apply(ctx, m.migrations[x], true); err != nil {
 				return err
 			}
 		}
@@ -333,16 +341,18 @@ func (m *Migrate) apply(ctx context.Context, mig *Migration, discard bool) (err 
 		}
 	}
 
+	// return early if we are discarding migration 0
+	if mig.Version == 0 && discard {
+		return tx.Commit()
+	}
+
 	// set the current version after applying the migration
-	mig = m.migrations[mig.Version]
 	if discard {
 		mig = m.migrations[mig.Version-1]
 	}
 
-	if mig != nil {
-		if err = m.set(ctx, tx, mig); err != nil {
-			return err
-		}
+	if err = m.set(ctx, tx, mig); err != nil {
+		return err
 	}
 
 	return tx.Commit()
