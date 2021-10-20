@@ -188,6 +188,15 @@ func NewWithFiles(db *sql.DB, logger Logger, files fs.FS) (m *Migrate, err error
 	return New(db, logger, arg)
 }
 
+// Versions return the list of migration versions available to this migrate instance.
+func (m *Migrate) Versions() (versions []Version) {
+	for x := 0; x < len(m.migrations); x++ {
+		versions = append(versions, Version{Version: m.migrations[x].Version, Name: m.migrations[x].Name})
+	}
+
+	return versions
+}
+
 // Version returns the current database migration version.
 // If the database migrations are not initialized version is -1.
 func (m *Migrate) Version(ctx context.Context) (version *Version, err error) {
