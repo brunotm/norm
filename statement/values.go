@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/brunotm/norm/internal/buffer"
 )
 
 var rfc3339micro = "'2006-01-02T15:04:05.999999Z07:00'"
@@ -58,10 +60,22 @@ func writeValue(buf Buffer, arg interface{}, keyword bool) (err error) {
 
 // TODO: consider manually inlining this
 func quoteString(str string) string {
-	return "'" + strings.ReplaceAll(str, "'", "''") + "'"
+	buf := buffer.New()
+	defer buf.Release()
+
+	buf.WriteString(`'`)
+	buf.WriteString(strings.ReplaceAll(str, "'", "''"))
+	buf.WriteString(`'`)
+	return buf.String()
 }
 
 // TODO: consider manually inlining this
-func quoteBytes(buf []byte) string {
-	return `'\x` + hex.EncodeToString(buf) + "'"
+func quoteBytes(b []byte) string {
+	buf := buffer.New()
+	defer buf.Release()
+
+	buf.WriteString(`'\x`)
+	buf.WriteString(hex.EncodeToString(b))
+	buf.WriteString(`'`)
+	return buf.String()
 }
