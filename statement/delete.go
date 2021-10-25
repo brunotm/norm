@@ -26,8 +26,8 @@ func (s *DeleteStatement) Comment(c string, values ...interface{}) *DeleteStatem
 	buf := buffer.New()
 	defer buf.Release()
 
-	buf.WriteString("-- ")
-	buf.WriteString(c)
+	_, _ = buf.WriteString("-- ")
+	_, _ = buf.WriteString(c)
 
 	p := &Part{}
 	p.Query = buf.String()

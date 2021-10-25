@@ -78,16 +78,16 @@ func buildWhereIn(column string, values ...interface{}) (p *Part) {
 		values = InterfaceSlice(values[0])
 	}
 
-	buf.WriteString(column)
-	buf.WriteString(" IN (")
+	_, _ = buf.WriteString(column)
+	_, _ = buf.WriteString(" IN (")
 	for x := 0; x < len(values); x++ {
 		if x > 0 {
-			buf.WriteString(",")
+			_, _ = buf.WriteString(",")
 		}
-		buf.WriteString("?")
+		_, _ = buf.WriteString("?")
 		p.Values = append(p.Values, values[x])
 	}
-	buf.WriteString(")")
+	_, _ = buf.WriteString(")")
 	p.Query = buf.String()
 	return p
 }

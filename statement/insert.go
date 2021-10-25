@@ -32,8 +32,8 @@ func (s *InsertStatement) Comment(c string, values ...interface{}) *InsertStatem
 	buf := buffer.New()
 	defer buf.Release()
 
-	buf.WriteString("-- ")
-	buf.WriteString(c)
+	_, _ = buf.WriteString("-- ")
+	_, _ = buf.WriteString(c)
 
 	p := &Part{}
 	p.Query = buf.String()
@@ -60,16 +60,16 @@ func (s *InsertStatement) Values(values ...interface{}) (st *InsertStatement) {
 	buf := buffer.New()
 	defer buf.Release()
 
-	buf.WriteString("(")
+	_, _ = buf.WriteString("(")
 
 	for x := 0; x < len(values); x++ {
 		if x > 0 {
-			buf.WriteString(",")
+			_, _ = buf.WriteString(",")
 		}
-		buf.WriteString("?")
+		_, _ = buf.WriteString("?")
 		p.Values = append(p.Values, values[x])
 	}
-	buf.WriteString(")")
+	_, _ = buf.WriteString(")")
 
 	p.Query = buf.String()
 	s.values = append(s.values, p)
@@ -121,8 +121,8 @@ func (s *InsertStatement) OnConflict(q string, values ...interface{}) (st *Inser
 	buf := buffer.New()
 	defer buf.Release()
 
-	buf.WriteString("ON CONFLICT ")
-	buf.WriteString(q)
+	_, _ = buf.WriteString("ON CONFLICT ")
+	_, _ = buf.WriteString(q)
 
 	p := &Part{}
 	p.Query = buf.String()

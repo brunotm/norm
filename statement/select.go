@@ -53,8 +53,8 @@ func (s *SelectStatement) Comment(c string, values ...interface{}) *SelectStatem
 	buf := buffer.New()
 	defer buf.Release()
 
-	buf.WriteString("-- ")
-	buf.WriteString(c)
+	_, _ = buf.WriteString("-- ")
+	_, _ = buf.WriteString(c)
 
 	p := &Part{}
 	p.Query = buf.String()
@@ -94,11 +94,11 @@ func (s *SelectStatement) Join(join Join, table, cond string, values ...interfac
 	buf := buffer.New()
 	defer buf.Release()
 
-	buf.WriteString(string(join))
-	buf.WriteString(" ")
-	buf.WriteString(table)
-	buf.WriteString(" ON ")
-	buf.WriteString(cond)
+	_, _ = buf.WriteString(string(join))
+	_, _ = buf.WriteString(" ")
+	_, _ = buf.WriteString(table)
+	_, _ = buf.WriteString(" ON ")
+	_, _ = buf.WriteString(cond)
 
 	p := &Part{}
 	p.Values = values

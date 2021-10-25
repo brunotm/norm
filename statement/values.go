@@ -7,8 +7,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/brunotm/norm/internal/buffer"
 )
 
 var rfc3339micro = "'2006-01-02T15:04:05.999999Z07:00'"
@@ -40,17 +38,17 @@ func writeValue(buf Buffer, arg interface{}, keyword bool) (err error) {
 	case bool:
 		_, _ = buf.WriteString(strconv.FormatBool(arg))
 	case []byte:
-		_, _ = buf.WriteString(quoteBytes(arg))
+		quoteBytes(arg, buf)
 	case string:
 		if keyword {
 			_, _ = buf.WriteString(arg)
 		} else {
-			_, _ = buf.WriteString(quoteString(arg))
+			quoteString(arg, buf)
 		}
 	case time.Time:
 		_, _ = buf.WriteString(arg.Format(rfc3339micro))
 	case fmt.Stringer:
-		_, _ = buf.WriteString(quoteString(arg.String()))
+		quoteString(arg.String(), buf)
 	default:
 		return fmt.Errorf("statement: invalid arg type: %T, value: %#v", arg, arg)
 	}
@@ -59,23 +57,15 @@ func writeValue(buf Buffer, arg interface{}, keyword bool) (err error) {
 }
 
 // TODO: consider manually inlining this
-func quoteString(str string) string {
-	buf := buffer.New()
-	defer buf.Release()
-
-	buf.WriteString(`'`)
-	buf.WriteString(strings.ReplaceAll(str, "'", "''"))
-	buf.WriteString(`'`)
-	return buf.String()
+func quoteString(str string, buf Buffer) {
+	_, _ = buf.WriteString(`'`)
+	_, _ = buf.WriteString(strings.ReplaceAll(str, "'", "''"))
+	_, _ = buf.WriteString(`'`)
 }
 
 // TODO: consider manually inlining this
-func quoteBytes(b []byte) string {
-	buf := buffer.New()
-	defer buf.Release()
-
-	buf.WriteString(`'\x`)
-	buf.WriteString(hex.EncodeToString(b))
-	buf.WriteString(`'`)
-	return buf.String()
+func quoteBytes(b []byte, buf Buffer) {
+	_, _ = buf.WriteString(`'\x`)
+	_, _ = buf.WriteString(hex.EncodeToString(b))
+	_, _ = buf.WriteString(`'`)
 }

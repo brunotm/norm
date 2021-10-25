@@ -14,8 +14,8 @@ func (s *DDL) Comment(c string, values ...interface{}) *DDL {
 	buf := buffer.New()
 	defer buf.Release()
 
-	buf.WriteString("-- ")
-	buf.WriteString(c)
+	_, _ = buf.WriteString("-- ")
+	_, _ = buf.WriteString(c)
 
 	p := &Part{}
 	p.Query = buf.String()
@@ -29,8 +29,8 @@ func Create(query string, values ...interface{}) *DDL {
 	buf := buffer.New()
 	defer buf.Release()
 
-	buf.WriteString("CREATE ")
-	buf.WriteString(query)
+	_, _ = buf.WriteString("CREATE ")
+	_, _ = buf.WriteString(query)
 
 	return &DDL{
 		Part: &Part{
@@ -45,8 +45,8 @@ func Alter(query string, values ...interface{}) *DDL {
 	buf := buffer.New()
 	defer buf.Release()
 
-	buf.WriteString("ALTER ")
-	buf.WriteString(query)
+	_, _ = buf.WriteString("ALTER ")
+	_, _ = buf.WriteString(query)
 
 	return &DDL{
 		Part: &Part{
@@ -61,8 +61,8 @@ func Drop(query string, values ...interface{}) *DDL {
 	buf := buffer.New()
 	defer buf.Release()
 
-	buf.WriteString("DROP ")
-	buf.WriteString(query)
+	_, _ = buf.WriteString("DROP ")
+	_, _ = buf.WriteString(query)
 
 	return &DDL{
 		Part: &Part{
@@ -77,8 +77,8 @@ func Truncate(query string, values ...interface{}) *DDL {
 	buf := buffer.New()
 	defer buf.Release()
 
-	buf.WriteString("TRUNCATE ")
-	buf.WriteString(query)
+	_, _ = buf.WriteString("TRUNCATE ")
+	_, _ = buf.WriteString(query)
 
 	return &DDL{
 		Part: &Part{

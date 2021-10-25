@@ -28,8 +28,8 @@ func (s *UpdateStatement) Comment(c string, values ...interface{}) *UpdateStatem
 	buf := buffer.New()
 	defer buf.Release()
 
-	buf.WriteString("-- ")
-	buf.WriteString(c)
+	_, _ = buf.WriteString("-- ")
+	_, _ = buf.WriteString(c)
 
 	p := &Part{}
 	p.Query = buf.String()
