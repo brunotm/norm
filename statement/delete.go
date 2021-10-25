@@ -2,6 +2,8 @@ package statement
 
 import (
 	"strings"
+
+	"github.com/brunotm/norm/internal/buffer"
 )
 
 // DeleteStatement statement.
@@ -21,8 +23,14 @@ func Delete() (s *DeleteStatement) {
 // Comment adds a SQL comment to the generated query.
 // Each call to comment creates a new `-- <comment>` line.
 func (s *DeleteStatement) Comment(c string, values ...interface{}) *DeleteStatement {
+	buf := buffer.New()
+	defer buf.Release()
+
+	buf.WriteString("-- ")
+	buf.WriteString(c)
+
 	p := &Part{}
-	p.Query = "-- " + c
+	p.Query = buf.String()
 	p.Values = values
 	s.comment = append(s.comment, p)
 	return s
@@ -74,13 +82,15 @@ func (s *DeleteStatement) Build(buf Buffer) (err error) {
 		_, _ = buf.WriteString(" ")
 	}
 
-	_, _ = buf.WriteString("DELETE FROM " + s.table)
+	_, _ = buf.WriteString("DELETE FROM ")
+	_, _ = buf.WriteString(s.table)
 	if err = buildWhere(buf, s.where); err != nil {
 		return err
 	}
 
 	if len(s.returning) > 0 {
-		_, _ = buf.WriteString(" RETURNING " + strings.Join(s.returning, ","))
+		_, _ = buf.WriteString(" RETURNING ")
+		_, _ = buf.WriteString(strings.Join(s.returning, ","))
 	}
 
 	return nil
@@ -88,8 +98,10 @@ func (s *DeleteStatement) Build(buf Buffer) (err error) {
 
 // String builds the statement and returns the resulting query string.
 func (s *DeleteStatement) String() (q string, err error) {
-	var buf strings.Builder
-	if err = s.Build(&buf); err != nil {
+	buf := buffer.New()
+	defer buf.Release()
+
+	if err = s.Build(buf); err != nil {
 		return "", err
 	}
 
