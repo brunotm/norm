@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/brunotm/norm/internal/buffer"
 	"github.com/brunotm/norm/internal/scan"
 )
 
@@ -28,8 +29,14 @@ func Insert() (s *InsertStatement) {
 // Comment adds a SQL comment to the generated query.
 // Each call to comment creates a new `-- <comment>` line.
 func (s *InsertStatement) Comment(c string, values ...interface{}) *InsertStatement {
+	buf := buffer.New()
+	defer buf.Release()
+
+	buf.WriteString("-- ")
+	buf.WriteString(c)
+
 	p := &Part{}
-	p.Query = "-- " + c
+	p.Query = buf.String()
 	p.Values = values
 	s.comment = append(s.comment, p)
 	return s
@@ -50,17 +57,21 @@ func (s *InsertStatement) Columns(columns ...string) (st *InsertStatement) {
 // Values specifies the values for the `VALUES` clause.
 func (s *InsertStatement) Values(values ...interface{}) (st *InsertStatement) {
 	p := &Part{}
-	p.Query = `(`
+	buf := buffer.New()
+	defer buf.Release()
+
+	buf.WriteString("(")
+
 	for x := 0; x < len(values); x++ {
-		if x == 0 {
-			p.Query += "?"
-		} else {
-			p.Query += ",?"
+		if x > 0 {
+			buf.WriteString(",")
 		}
+		buf.WriteString("?")
 		p.Values = append(p.Values, values[x])
 	}
-	p.Query += `)`
+	buf.WriteString(")")
 
+	p.Query = buf.String()
 	s.values = append(s.values, p)
 	return s
 }
@@ -107,8 +118,14 @@ func (s *InsertStatement) ValuesSelect(values *SelectStatement) (st *InsertState
 
 // OnConflict adds a `ON CONFLICT` clause.
 func (s *InsertStatement) OnConflict(q string, values ...interface{}) (st *InsertStatement) {
+	buf := buffer.New()
+	defer buf.Release()
+
+	buf.WriteString("ON CONFLICT ")
+	buf.WriteString(q)
+
 	p := &Part{}
-	p.Query += `ON CONFLICT ` + q
+	p.Query = buf.String()
 	p.Values = values
 
 	s.onConflict = p
@@ -143,7 +160,8 @@ func (s *InsertStatement) Build(buf Buffer) (err error) {
 		_, _ = buf.WriteString(" ")
 	}
 
-	_, _ = buf.WriteString("INSERT INTO " + s.table)
+	_, _ = buf.WriteString("INSERT INTO ")
+	_, _ = buf.WriteString(s.table)
 
 	_, _ = buf.WriteString("(")
 	_, _ = buf.WriteString(strings.Join(s.columns, ","))
@@ -172,7 +190,8 @@ func (s *InsertStatement) Build(buf Buffer) (err error) {
 	}
 
 	if len(s.returning) > 0 {
-		_, _ = buf.WriteString(" RETURNING " + strings.Join(s.returning, ","))
+		_, _ = buf.WriteString(" RETURNING ")
+		_, _ = buf.WriteString(strings.Join(s.returning, ","))
 	}
 
 	return nil
@@ -180,8 +199,10 @@ func (s *InsertStatement) Build(buf Buffer) (err error) {
 
 // String builds the statement and returns the resulting query string.
 func (s *InsertStatement) String() (q string, err error) {
-	var buf strings.Builder
-	if err = s.Build(&buf); err != nil {
+	buf := buffer.New()
+	defer buf.Release()
+
+	if err = s.Build(buf); err != nil {
 		return "", err
 	}
 
