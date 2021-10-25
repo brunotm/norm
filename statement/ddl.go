@@ -1,6 +1,6 @@
 package statement
 
-import "strings"
+import "github.com/brunotm/norm/internal/buffer"
 
 // DDL represents a data definition statement.
 type DDL struct {
@@ -11,8 +11,14 @@ type DDL struct {
 // Comment adds a SQL comment to the generated query.
 // Each call to comment creates a new `-- <comment>` line.
 func (s *DDL) Comment(c string, values ...interface{}) *DDL {
+	buf := buffer.New()
+	defer buf.Release()
+
+	buf.WriteString("-- ")
+	buf.WriteString(c)
+
 	p := &Part{}
-	p.Query = "-- " + c
+	p.Query = buf.String()
 	p.Values = values
 	s.comment = append(s.comment, p)
 	return s
@@ -20,9 +26,15 @@ func (s *DDL) Comment(c string, values ...interface{}) *DDL {
 
 // Create creates a new `CREATE` DDL statement.
 func Create(query string, values ...interface{}) *DDL {
+	buf := buffer.New()
+	defer buf.Release()
+
+	buf.WriteString("CREATE ")
+	buf.WriteString(query)
+
 	return &DDL{
 		Part: &Part{
-			Query:  "CREATE " + query,
+			Query:  buf.String(),
 			Values: values,
 		},
 	}
@@ -30,9 +42,15 @@ func Create(query string, values ...interface{}) *DDL {
 
 // Alter creates a new `ALTER` DDL statement.
 func Alter(query string, values ...interface{}) *DDL {
+	buf := buffer.New()
+	defer buf.Release()
+
+	buf.WriteString("ALTER ")
+	buf.WriteString(query)
+
 	return &DDL{
 		Part: &Part{
-			Query:  "ALTER " + query,
+			Query:  buf.String(),
 			Values: values,
 		},
 	}
@@ -40,9 +58,15 @@ func Alter(query string, values ...interface{}) *DDL {
 
 // Drop creates a new `DROP` DDL statement.
 func Drop(query string, values ...interface{}) *DDL {
+	buf := buffer.New()
+	defer buf.Release()
+
+	buf.WriteString("DROP ")
+	buf.WriteString(query)
+
 	return &DDL{
 		Part: &Part{
-			Query:  "DROP " + query,
+			Query:  buf.String(),
 			Values: values,
 		},
 	}
@@ -50,9 +74,15 @@ func Drop(query string, values ...interface{}) *DDL {
 
 // Truncate creates a new `TRUNCATE` DDL statement.
 func Truncate(query string, values ...interface{}) *DDL {
+	buf := buffer.New()
+	defer buf.Release()
+
+	buf.WriteString("TRUNCATE ")
+	buf.WriteString(query)
+
 	return &DDL{
 		Part: &Part{
-			Query:  "TRUNCATE " + query,
+			Query:  buf.String(),
 			Values: values,
 		},
 	}
@@ -71,8 +101,10 @@ func (s *DDL) Build(buf Buffer) (err error) {
 
 // String builds the statement and returns the resulting query string.
 func (s *DDL) String() (q string, err error) {
-	var buf strings.Builder
-	if err = s.Build(&buf); err != nil {
+	buf := buffer.New()
+	defer buf.Release()
+
+	if err = s.Build(buf); err != nil {
 		return "", err
 	}
 
