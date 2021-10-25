@@ -22,7 +22,7 @@ func TestBuffer_WriteString(t *testing.T) {
 	defer buf.Release()
 
 	s := "this is a string"
-	buf.WriteString(s)
+	_, _ = buf.WriteString(s)
 
 	if buf.String() != s {
 		t.Errorf("expected: %s, got: %s", s, buf.String())
@@ -34,7 +34,7 @@ func TestBuffer_Write(t *testing.T) {
 	defer buf.Release()
 
 	s := []byte("this is a string")
-	buf.Write(s)
+	_, _ = buf.Write(s)
 
 	if buf.String() != string(s) {
 		t.Errorf("expected: %s, got: %s", string(s), buf.String())
@@ -46,7 +46,7 @@ func TestBuffer_WriteByte(t *testing.T) {
 	defer buf.Release()
 
 	s := byte(1)
-	buf.WriteByte(s)
+	_ = buf.WriteByte(s)
 
 	if buf.String() != string(s) {
 		t.Errorf("expected: %s, got: %s", string(s), buf.String())
