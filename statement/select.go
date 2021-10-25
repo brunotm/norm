@@ -3,6 +3,8 @@ package statement
 import (
 	"fmt"
 	"strings"
+
+	"github.com/brunotm/norm/internal/buffer"
 )
 
 // Join types
@@ -31,7 +33,7 @@ type SelectStatement struct {
 	with           Statement
 	union          Statement
 	table          Statement
-	columns        []string
+	columns        []interface{}
 	groupBy        []string
 	orderBy        []string
 	comment        []Statement
@@ -48,16 +50,29 @@ func Select() *SelectStatement {
 // Comment adds a SQL comment to the generated query.
 // Each call to comment creates a new `-- <comment>` line.
 func (s *SelectStatement) Comment(c string, values ...interface{}) *SelectStatement {
+	buf := buffer.New()
+	defer buf.Release()
+
+	_, _ = buf.WriteString("-- ")
+	_, _ = buf.WriteString(c)
+
 	p := &Part{}
-	p.Query = "-- " + c
+	p.Query = buf.String()
 	p.Values = values
 	s.comment = append(s.comment, p)
 	return s
 }
 
-// Columns set the `SELECT` columns.
-func (s *SelectStatement) Columns(columns ...string) *SelectStatement {
+// Columns set the `SELECT` columns. Columns overwrites any previously set columns for this statement.
+func (s *SelectStatement) Columns(columns ...interface{}) *SelectStatement {
 	s.columns = columns
+	return s
+}
+
+// Column append the given column to the `SELECT`. Column appends to the existing columns already specified.
+// Used for more ellaborate column specification.
+func (s *SelectStatement) Column(q string, values ...interface{}) *SelectStatement {
+	s.columns = append(s.columns, &Part{Query: q, Values: values})
 	return s
 }
 
@@ -76,9 +91,18 @@ func (s *SelectStatement) From(table interface{}) *SelectStatement {
 
 // Join adds a `JOIN ...` clause.
 func (s *SelectStatement) Join(join Join, table, cond string, values ...interface{}) *SelectStatement {
+	buf := buffer.New()
+	defer buf.Release()
+
+	_, _ = buf.WriteString(string(join))
+	_, _ = buf.WriteString(" ")
+	_, _ = buf.WriteString(table)
+	_, _ = buf.WriteString(" ON ")
+	_, _ = buf.WriteString(cond)
+
 	p := &Part{}
 	p.Values = values
-	p.Query = string(join) + " " + table + " ON " + cond
+	p.Query = buf.String()
 
 	s.join = append(s.join, p)
 	return s
@@ -218,7 +242,21 @@ func (s *SelectStatement) Build(buf Buffer) (err error) {
 		_, _ = buf.WriteString("DISTINCT ")
 	}
 
-	_, _ = buf.WriteString(strings.Join(s.columns, ","))
+	for x := 0; x < len(s.columns); x++ {
+		if x > 0 {
+			_, _ = buf.WriteString(`,`)
+		}
+
+		switch c := s.columns[x].(type) {
+		case Statement:
+			if err = c.Build(buf); err != nil {
+				return err
+			}
+
+		case string:
+			_, _ = buf.WriteString(c)
+		}
+	}
 
 	if s.table != nil {
 		_, _ = buf.WriteString(" FROM ")
@@ -250,7 +288,7 @@ func (s *SelectStatement) Build(buf Buffer) (err error) {
 
 	if len(s.groupBy) > 0 {
 		_, _ = buf.WriteString(" GROUP BY ")
-		_, _ = buf.WriteString(strings.Join(s.groupBy, "', '"))
+		_, _ = buf.WriteString(strings.Join(s.groupBy, ","))
 	}
 
 	for x := 0; x < len(s.having); x++ {
@@ -269,7 +307,8 @@ func (s *SelectStatement) Build(buf Buffer) (err error) {
 	if len(s.orderBy) > 0 {
 		_, _ = buf.WriteString(" ORDER BY ")
 		_, _ = buf.WriteString(strings.Join(s.orderBy, `,`))
-		_, _ = buf.WriteString(" " + s.order)
+		_, _ = buf.WriteString(" ")
+		_, _ = buf.WriteString(s.order)
 	}
 
 	if s.limitCount > 0 {
@@ -296,8 +335,10 @@ func (s *SelectStatement) Build(buf Buffer) (err error) {
 
 // String builds the statement and returns the resulting query string.
 func (s *SelectStatement) String() (q string, err error) {
-	var buf strings.Builder
-	if err = s.Build(&buf); err != nil {
+	buf := buffer.New()
+	defer buf.Release()
+
+	if err = s.Build(buf); err != nil {
 		return "", err
 	}
 

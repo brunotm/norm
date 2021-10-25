@@ -74,6 +74,13 @@ WITH select_offices AS (SELECT country,city,address,postal_code FROM offices WHE
 				WhereIn("role", "admin", "owner"),
 			wantErr: false,
 		},
+		{
+			name:   "column_function",
+			expect: `SELECT id,name,percentile_cont(0.99) WITHIN GROUP (ORDER BY duration) AS p99 GROUP BY id,name`,
+			stmt: Select().Columns("id", "name").Column("percentile_cont(?) WITHIN GROUP (ORDER BY duration) AS p99", 0.99).
+				GroupBy("id", "name"),
+			wantErr: false,
+		},
 	}
 )
 

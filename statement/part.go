@@ -3,6 +3,8 @@ package statement
 import (
 	"fmt"
 	"strings"
+
+	"github.com/brunotm/norm/internal/buffer"
 )
 
 // Part is a query fragment that satisfies the statement.Statement interface
@@ -13,8 +15,10 @@ type Part struct {
 
 // String builds the part and returns the resulting query.
 func (p *Part) String() (q string, err error) {
-	var buf strings.Builder
-	if err = p.Build(&buf); err != nil {
+	buf := buffer.New()
+	defer buf.Release()
+
+	if err = p.Build(buf); err != nil {
 		return "", err
 	}
 

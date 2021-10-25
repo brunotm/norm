@@ -3,8 +3,8 @@ package statement
 import (
 	"fmt"
 	"reflect"
-	"strings"
 
+	"github.com/brunotm/norm/internal/buffer"
 	"github.com/brunotm/norm/internal/scan"
 )
 
@@ -17,7 +17,7 @@ var (
 )
 
 // Buffer represents the write buffer for building statements.
-// Fits nicely with a *strings.Builder.
+// Fits nicely with a strings.Builder or a bytes.Buffer.
 type Buffer interface {
 	WriteString(s string) (int, error)
 	String() string
@@ -69,22 +69,26 @@ func InterfaceSlice(slice interface{}) []interface{} {
 
 // buildWhereIn builds a `WHERE IN (values)` clause.
 func buildWhereIn(column string, values ...interface{}) (p *Part) {
+	buf := buffer.New()
+	defer buf.Release()
+
 	p = &Part{}
 
 	if len(values) == 1 && scan.IsSlice(values[0]) {
 		values = InterfaceSlice(values[0])
 	}
 
-	p.Query = column + ` IN (`
+	_, _ = buf.WriteString(column)
+	_, _ = buf.WriteString(" IN (")
 	for x := 0; x < len(values); x++ {
-		if x == 0 {
-			p.Query += "?"
-		} else {
-			p.Query += ",?"
+		if x > 0 {
+			_, _ = buf.WriteString(",")
 		}
+		_, _ = buf.WriteString("?")
 		p.Values = append(p.Values, values[x])
 	}
-	p.Query += `)`
+	_, _ = buf.WriteString(")")
+	p.Query = buf.String()
 	return p
 }
 
@@ -109,7 +113,9 @@ func (s *with) Build(buf Buffer) (err error) {
 		w = "WITH RECURSIVE "
 	}
 
-	_, _ = buf.WriteString(w + s.alias + " AS (")
+	_, _ = buf.WriteString(w)
+	_, _ = buf.WriteString(s.alias)
+	_, _ = buf.WriteString(" AS (")
 	if err = s.stmt.Build(buf); err != nil {
 		return err
 	}
@@ -119,8 +125,10 @@ func (s *with) Build(buf Buffer) (err error) {
 
 // String builds the statement and returns the resulting query string.
 func (s *with) String() (q string, err error) {
-	var buf strings.Builder
-	if err = s.Build(&buf); err != nil {
+	buf := buffer.New()
+	defer buf.Release()
+
+	if err = s.Build(buf); err != nil {
 		return "", err
 	}
 
@@ -147,8 +155,10 @@ func (s *union) Build(buf Buffer) (err error) {
 
 // String builds the statement and returns the resulting query string.
 func (s *union) String() (q string, err error) {
-	var buf strings.Builder
-	if err = s.Build(&buf); err != nil {
+	buf := buffer.New()
+	defer buf.Release()
+
+	if err = s.Build(buf); err != nil {
 		return "", err
 	}
 
