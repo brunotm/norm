@@ -108,14 +108,14 @@ func (t *Tx) query(dst interface{}, stmt statement.Statement, cache bool) (err e
 		return err
 	}
 
-	if cache && err == nil {
-		t.log("db.tx.query.cache.add", t.tid, nil, time.Since(start), query)
+	if cache {
 		t.cache[key] = reflect.ValueOf(dst).Elem()
-		return nil
+		t.log("db.tx.query.cache.add", t.tid, nil, time.Since(start), query)
+	} else {
+		t.log("db.tx.query", t.tid, err, time.Since(start), query)
 	}
 
-	t.log("db.tx.query", t.tid, err, time.Since(start), query)
-	return err
+	return r.Close()
 }
 
 // Commit the transaction.
