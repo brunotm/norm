@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"database/sql"
+	"database/sql/driver"
 	"testing"
 
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
@@ -205,6 +206,50 @@ func TestDBClose(t *testing.T) {
 	mock.ExpectClose()
 	if err = db.Close(); err != nil {
 		t.Fatalf("error closing the database: %s", err)
+	}
+
+	if err = mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("mock expectations failed: %s", err)
+	}
+}
+
+func TestTxPrepareExecSimple(t *testing.T) {
+	mdb, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if err != nil {
+		t.Fatalf("error opening mock database: %s", err)
+	}
+	defer mdb.Close()
+
+	db, err := New(mdb, sql.LevelSerializable, DefaultLogger)
+	if err != nil {
+		t.Fatalf("error opening norm/database.DB: %s", err)
+	}
+
+	mock.ExpectBegin()
+	mock.ExpectPrepare("INSERT INTO users(id,name,email,role) VALUES (?,?,?,?)").
+		WillBeClosed().ExpectExec().WillReturnResult(driver.ResultNoRows)
+	mock.ExpectCommit()
+
+	tx, err := db.Update(context.Background(), "")
+	if err != nil {
+		t.Fatalf("error opening norm/database.DB transaction: %s", err)
+	}
+
+	stmt, err := tx.Prepare("INSERT INTO users(id,name,email,role) VALUES (?,?,?,?)")
+	if err != nil {
+		t.Fatalf("error preparing statement: %s", err)
+	}
+
+	if _, err = stmt.Exec("123abc", "john doe", "johnd@email.com", "admin"); err != nil {
+		t.Fatalf("error executing prepared statement: %s", err)
+	}
+
+	if err = stmt.Close(); err != nil {
+		t.Fatalf("error closed prepared statement: %s", err)
+	}
+
+	if err = tx.Commit(); err != nil {
+		t.Fatalf("error committing norm/database.DB transaction: %s", err)
 	}
 
 	if err = mock.ExpectationsWereMet(); err != nil {

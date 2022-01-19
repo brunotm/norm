@@ -10,12 +10,12 @@ import (
 )
 
 // Logger type for database operations
-type Logger func(id, message string, err error, d time.Duration, query string)
+type Logger func(message, tid string, err error, d time.Duration, query string)
 
 // DefaultLogger for database operations
-func DefaultLogger(id, message string, err error, d time.Duration, query string) {
-	log.Printf("id: %s, message: %s, error: %s, duration_millis: %d, query: %s",
-		id, message, err, d.Milliseconds(), query)
+func DefaultLogger(message, tid string, err error, d time.Duration, query string) {
+	log.Printf("message: %s, tid: %s, error: %s, duration_millis: %d, query: %s",
+		message, tid, err, d.Milliseconds(), query)
 }
 
 func nopLogger(message, id string, err error, d time.Duration, query string) {}
@@ -50,13 +50,16 @@ func New(db *sql.DB, level sql.IsolationLevel, logger Logger) (d *DB, err error)
 // The tid argument is the transaction identifier that will be used to log operations
 // done within the transaction.
 func (d *DB) Tx(ctx context.Context, tid string, opts *sql.TxOptions) (tx *Tx, err error) {
-	t, err := d.db.BeginTx(ctx, opts)
-	if err != nil {
-		return nil, err
-	}
-
 	if tid == "" {
 		tid = strconv.FormatInt(time.Now().UnixNano(), 32)
+	}
+
+	start := time.Now()
+	t, err := d.db.BeginTx(ctx, opts)
+	d.log("db.begin", tid, err, time.Since(start), "")
+
+	if err != nil {
+		return nil, err
 	}
 
 	return &Tx{

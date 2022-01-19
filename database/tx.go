@@ -24,6 +24,19 @@ type Tx struct {
 	cache map[uint64]reflect.Value
 }
 
+// Prepare creates a prepared statement for use within a transaction.
+func (t *Tx) Prepare(query string) (stmt *Stmt, err error) {
+	start := time.Now()
+
+	s, err := t.tx.PrepareContext(t.ctx, query)
+	t.log("db.tx.prepare", t.tid, err, time.Since(start), query)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Stmt{tx: t, stmt: s}, err
+}
+
 // Exec executes a query that doesn't return rows.
 func (t *Tx) Exec(stmt statement.Statement) (r sql.Result, err error) {
 	start := time.Now()
@@ -102,6 +115,7 @@ func (t *Tx) query(dst interface{}, stmt statement.Statement, cache bool) (err e
 		t.log("db.tx.query", t.tid, err, time.Since(start), query)
 		return err
 	}
+	defer r.Close()
 
 	if _, err = scan.Load(r, dst); err != nil {
 		t.log("db.tx.query", t.tid, err, time.Since(start), query)
@@ -115,7 +129,7 @@ func (t *Tx) query(dst interface{}, stmt statement.Statement, cache bool) (err e
 		t.log("db.tx.query", t.tid, err, time.Since(start), query)
 	}
 
-	return r.Close()
+	return nil
 }
 
 // Commit the transaction.
@@ -127,7 +141,7 @@ func (t *Tx) Commit() (err error) {
 	err = t.tx.Commit()
 	t.done = true
 
-	t.log("db.tx.commit", t.tid, err, time.Since(start), "COMMIT")
+	t.log("db.tx.commit", t.tid, err, time.Since(start), "")
 	return err
 }
 
@@ -144,6 +158,6 @@ func (t *Tx) Rollback() (err error) {
 	err = t.tx.Rollback()
 	t.done = true
 
-	t.log("db.tx.rollback", t.tid, err, time.Since(start), "ROLLBACK")
+	t.log("db.tx.rollback", t.tid, err, time.Since(start), "")
 	return err
 }
