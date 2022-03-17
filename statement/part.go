@@ -7,6 +7,9 @@ import (
 	"github.com/brunotm/norm/internal/buffer"
 )
 
+// Ident type is handled as an user provided identifier as is in the resulting query
+type Ident string
+
 // Part is a query fragment that satisfies the statement.Statement interface
 type Part struct {
 	Query  string
@@ -55,6 +58,8 @@ func (p *Part) build(buf Buffer, keyword bool) (err error) {
 			_, _ = buf.WriteString("(")
 			err = arg.Build(buf)
 			_, _ = buf.WriteString(")")
+		case Ident:
+			_, _ = buf.WriteString(string(arg))
 		default:
 			err = writeValue(buf, arg, keyword)
 		}
