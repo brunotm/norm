@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/brunotm/norm/statement"
 )
 
 var (
@@ -238,9 +240,13 @@ func (m *Migrate) Down(ctx context.Context) (err error) {
 }
 
 func (m *Migrate) set(ctx context.Context, tx *sql.Tx, mig *Migration) (err error) {
-	stmt := fmt.Sprintf(
-		"INSERT INTO migrations(version, date, name) values(%d, NOW(), '%s')",
-		mig.Version, mig.Name)
+	stmt, err := statement.Insert().Into("migrations").
+		Columns("version", "date", "name").
+		Values(mig.Version, statement.Ident("NOW()"), mig.Name).String()
+
+	if err != nil {
+		return err
+	}
 
 	m.logger(`migrate: update version, statement: %s`, stmt)
 	_, err = tx.ExecContext(ctx, stmt)

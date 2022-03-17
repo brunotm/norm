@@ -6,7 +6,7 @@ import (
 )
 
 func TestParseSimple(t *testing.T) {
-	stmt, err := parseStatement(statement)
+	stmt, err := parseStatement(stmt)
 	if err != nil {
 		t.Fatalf("failed to parse statement: %s", err)
 	}
@@ -17,7 +17,7 @@ func TestParseSimple(t *testing.T) {
 }
 
 func TestParseMultiNoTx(t *testing.T) {
-	notx := append([]byte(`-- migrate: NoTransaction`), statement...)
+	notx := append([]byte(`-- migrate: NoTransaction`), stmt...)
 	_, err := parseStatement(notx)
 
 	if err != ErrInvalidNoTx {
@@ -25,7 +25,7 @@ func TestParseMultiNoTx(t *testing.T) {
 	}
 }
 
-var statement = []byte(`
+var stmt = []byte(`
 CREATE TABLE IF NOT EXISTS users (
 	created_at timestamptz NOT NULL DEFAULT now(),
 	updated_at timestamptz NOT NULL DEFAULT now(),

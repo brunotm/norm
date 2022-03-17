@@ -27,7 +27,7 @@ func TestMigrationUp(t *testing.T) {
 	mock.ExpectRollback()
 	mock.ExpectBegin()
 	mock.ExpectExec(migration0.Apply.Statements[0]).WillReturnResult(sqlmock.NewResult(0, 1))
-	mock.ExpectExec(`INSERT INTO migrations(version, date, name) values(0, NOW(), 'create_migrations_table')`).
+	mock.ExpectExec(`INSERT INTO migrations(version,date,name) VALUES (0,NOW(),'create_migrations_table')`).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit()
 
@@ -39,7 +39,7 @@ func TestMigrationUp(t *testing.T) {
 	)
 	mock.ExpectExec(migration1.Apply.Statements[0]).
 		WillReturnResult(sqlmock.NewResult(0, 1))
-	mock.ExpectExec(`INSERT INTO migrations(version, date, name) values(1, NOW(), 'users_table')`).
+	mock.ExpectExec(`INSERT INTO migrations(version,date,name) VALUES (1,NOW(),'users_table')`).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit()
 
@@ -51,7 +51,7 @@ func TestMigrationUp(t *testing.T) {
 	)
 	mock.ExpectExec(migration2.Apply.Statements[0]).
 		WillReturnResult(sqlmock.NewResult(0, 1))
-	mock.ExpectExec(`INSERT INTO migrations(version, date, name) values(2, NOW(), 'users_email_index')`).
+	mock.ExpectExec(`INSERT INTO migrations(version,date,name) VALUES (2,NOW(),'users_email_index')`).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit()
 
@@ -63,7 +63,7 @@ func TestMigrationUp(t *testing.T) {
 	)
 	mock.ExpectExec(migration3.Apply.Statements[0]).
 		WillReturnResult(sqlmock.NewResult(0, 1))
-	mock.ExpectExec(`INSERT INTO migrations(version, date, name) values(3, NOW(), 'roles_table')`).
+	mock.ExpectExec(`INSERT INTO migrations(version,date,name) VALUES (3,NOW(),'roles_table')`).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit()
 
@@ -75,7 +75,7 @@ func TestMigrationUp(t *testing.T) {
 	)
 	mock.ExpectExec(migration4.Apply.Statements[0]).
 		WillReturnResult(sqlmock.NewResult(0, 1))
-	mock.ExpectExec(`INSERT INTO migrations(version, date, name) values(4, NOW(), 'user_roles_fk')`).
+	mock.ExpectExec(`INSERT INTO migrations(version,date,name) VALUES (4,NOW(),'user_roles_fk')`).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit()
 
