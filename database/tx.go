@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"hash/maphash"
 	"reflect"
 	"sync"
@@ -104,7 +105,22 @@ func (t *Tx) query(dst interface{}, stmt statement.Statement, cache bool) (err e
 		t.hash.Reset()
 
 		if r, ok := t.cache[key]; ok {
-			reflect.ValueOf(dst).Elem().Set(r)
+			dstValue := reflect.ValueOf(dst)
+
+			if dstValue.Kind() != reflect.Ptr {
+				err := fmt.Errorf("database: dst must be a pointer type")
+				t.log("db.tx.query.cache.get", t.tid, err, time.Since(start), query)
+				return err
+			}
+
+			if dstValue.Elem().Type() != r.Type() {
+				err := fmt.Errorf("database: invalid cached dst type: %s, expected: %s",
+					dstValue.Type().String(), r.Type().String())
+				t.log("db.tx.query.cache.get", t.tid, err, time.Since(start), query)
+				return err
+			}
+
+			dstValue.Elem().Set(r)
 			t.log("db.tx.query.cache.get", t.tid, nil, time.Since(start), query)
 			return nil
 		}

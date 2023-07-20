@@ -143,7 +143,7 @@ func TestTxQueryCache(t *testing.T) {
 		t.Fatalf("error performing norm/database.DB query: %s", err)
 	}
 
-	// running the query the 2md time should not hit tha database and fail expectations
+	// running the query the 2nd time should not hit the database and fail expectations
 	if err = tx.QueryCache(&users, query); err != nil {
 		t.Fatalf("error performing norm/database.DB query: %s", err)
 	}
@@ -159,7 +159,54 @@ func TestTxQueryCache(t *testing.T) {
 	if err = mock.ExpectationsWereMet(); err != nil {
 		t.Fatalf("mock expectations failed: %s", err)
 	}
+}
 
+func TestTxQueryCacheTypeCheck(t *testing.T) {
+	mdb, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if err != nil {
+		t.Fatalf("error opening mock database: %s", err)
+	}
+	defer mdb.Close()
+
+	db, err := New(mdb, sql.LevelSerializable, DefaultLogger)
+	if err != nil {
+		t.Fatalf("error opening norm/database.DB: %s", err)
+	}
+
+	mock.ExpectBegin()
+	mock.ExpectRollback()
+
+	tx, err := db.Read(context.Background(), "someid")
+	if err != nil {
+		t.Fatalf("error opening norm/database.DB transaction: %s", err)
+	}
+
+	query := statement.Select().Columns("id", "name", "email", "role").From("users")
+
+	type user struct {
+		ID    string
+		Name  string
+		Email string
+		Role  string
+	}
+	var users []user
+
+	if err = tx.QueryCache(nil, query); err == nil {
+		t.Fatalf("expected invalid dst type error")
+	}
+
+	// running the query the 2nd time should not hit the database and fail expectations
+	if err = tx.QueryCache(users, query); err == nil {
+		t.Fatalf("expected dst must be a pointer type error")
+	}
+
+	if err = tx.Rollback(); err != nil {
+		t.Fatalf("error rolling back transaction: %s", err)
+	}
+
+	if err = mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("mock expectations failed: %s", err)
+	}
 }
 
 func TestDBPing(t *testing.T) {
